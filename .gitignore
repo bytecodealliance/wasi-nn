@@ -1,0 +1,8 @@
+assemblyscript/build
+assemblyscript/node_modules
+assemblyscript/package-lock.json
+assemblyscript/wasmtime
+rust/examples/classification-example/build
+rust/examples/classification-example/target
+wasmtime
+
