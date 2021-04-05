@@ -1,0 +1,36 @@
+{
+  "name": "wasi-nn-as-example",
+  "version": "0.1.0",
+  "description": "An example of using the wasi-nn APIs from AssemblyScript",
+  "main": "index.js",
+  "scripts": {
+    "test": "node tests",
+    "asbuild:untouched": "asc assembly/example.ts --runtime stub --use abort=assembly/example/wasi_abort --target debug",
+    "asbuild:optimized": "asc assembly/example.ts --runtime stub --use abort=assembly/example/wasi_abort --target release",
+    "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized",
+    "demo": "npm run asbuild && ./demo.sh",
+    "nn": "./wasmtime run build/optimized.wasm --dir build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abrown/wasi-nn-as-example.git"
+  },
+  "keywords": [
+    "wasi",
+    "wasi-nn",
+    "as"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/abrown/wasi-nn-as-example/issues"
+  },
+  "homepage": "https://github.com/abrown/wasi-nn-as-example#readme",
+  "dependencies": {
+    "@assemblyscript/loader": "^0.18.9",
+    "as-wasi": "^0.4.4"
+  },
+  "devDependencies": {
+    "assemblyscript": "^0.18.9"
+  }
+}
