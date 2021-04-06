@@ -14,4 +14,4 @@ wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/alexnet.xml
 wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/tensor-1x3x227x227-f32.bgr
 
 # Run the demo
-./wasmtime run build/optimized.wasm --dir build
+wasmtime run build/optimized.wasm --dir build
