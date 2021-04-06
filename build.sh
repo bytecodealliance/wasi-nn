@@ -14,7 +14,7 @@ else
         pushd $WASI_NN_DIR/assemblyscript
             npm install
             npm run demo
-            ;;
+        ;;
 
         rust)
             echo "The first argument: $1"
