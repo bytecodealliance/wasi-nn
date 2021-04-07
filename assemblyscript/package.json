@@ -1,33 +1,30 @@
 {
-  "name": "wasi-nn-as-example",
+  "name": "wasi-nn",
   "version": "0.1.0",
-  "description": "An example of using the wasi-nn APIs from AssemblyScript",
-  "main": "index.js",
+  "description": "WASI-NN for standalone WASM applications",
   "scripts": {
     "test": "node tests",
-    "asbuild:untouched": "asc assembly/example.ts --runtime stub --use abort=assembly/example/wasi_abort --target debug",
-    "asbuild:optimized": "asc assembly/example.ts --runtime stub --use abort=assembly/example/wasi_abort --target release",
+    "asbuild:untouched": "asc assembly/examples/object-identification.ts --runtime stub --use abort=assembly/examples/object-identification/wasi_abort --target debug",
+    "asbuild:optimized": "asc assembly/examples/object-identification.ts --runtime stub --use abort=assembly/examples/object-identification/wasi_abort --target release",
     "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized",
     "demo": "npm run asbuild && ./demo.sh",
     "nn": "./wasmtime run build/optimized.wasm --dir build"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/abrown/wasi-nn-as-example.git"
+    "url": "git+https://github.com/bytecodealliance/wasi-nn"
   },
   "keywords": [
     "wasi",
     "wasi-nn",
     "as"
   ],
-  "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/abrown/wasi-nn-as-example/issues"
+    "url": "https://github.com/bytecodealliance/wasi-nn/issues"
   },
-  "homepage": "https://github.com/abrown/wasi-nn-as-example#readme",
+  "homepage": "https://github.com/bytecodealliance/wasi-nn#readme",
   "dependencies": {
-    "@assemblyscript/loader": "^0.18.9",
     "as-wasi": "^0.4.4"
   },
   "devDependencies": {
