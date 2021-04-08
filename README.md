@@ -71,11 +71,11 @@ import { Graph, Tensor, TensorType, GraphEncoding, ExecutionTarget } from "wasi-
 ```
 ## Examples
 ---
-### Image identification:
+### Image classification:
 
-[Rust](rust/examples)
+[Rust](rust/examples/classification-example)
 
-[AssemblyScript](assembly/example.ts)
+[AssemblyScript](assembly/examples/object-classification.ts)
 ## Related Links
 ---
 [WASI](https://github.com/WebAssembly/WASI)
