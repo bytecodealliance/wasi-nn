@@ -75,7 +75,7 @@ import { Graph, Tensor, TensorType, GraphEncoding, ExecutionTarget } from "wasi-
 
 [Rust](rust/examples/classification-example)
 
-[AssemblyScript](assembly/examples/object-classification.ts)
+[AssemblyScript](assemblyscript/examples/object-classification.ts)
 ## Related Links
 ---
 [WASI](https://github.com/WebAssembly/WASI)
