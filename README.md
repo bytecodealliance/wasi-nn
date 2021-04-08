@@ -24,51 +24,10 @@ The purpose of this project is to provide WASI-NN bindings for Rust and Assembly
 
 ## Use
 ---
-> __NOTE__: The wasi-nn binding packages have not been published yet. Local versions will need to be used until then.
->
-### For Rust
----
-Add the dependency for wasi-nn to your `Cargo.toml`:
+[Rust README](rust/README.md)
 
-```toml
-[dependencies]
-wasi-nn = "0.1.0"
-```
+[AssemblyScript README](assemblyscript/README.md)
 
-Use the wasi-nn APIs in your application:
-
-```rust
-use wasi_nn;
-
-unsafe {
-    wasi_nn::load(
-        &[&xml.into_bytes(), &weights],
-        wasi_nn::GRAPH_ENCODING_OPENVINO,
-        wasi_nn::EXECUTION_TARGET_CPU,
-    )
-    .unwrap()
-}
-```
-
-Compile the application to WebAssembly:
-
-```shell script
-cargo build --target=wasm32-wasi
-```
-
-### For AssemblyScript
----
-Add the dependency for wasi-nn to your `package.json`:
-```
-"dependencies": {
-  "wasi-nn": "0.1.0"
-}
-```
-
-Import the objects and functions you want to use in your project:
-```
-import { Graph, Tensor, TensorType, GraphEncoding, ExecutionTarget } from "wasi-nn";
-```
 ## Examples
 ---
 ### Image classification:
@@ -76,6 +35,9 @@ import { Graph, Tensor, TensorType, GraphEncoding, ExecutionTarget } from "wasi-
 [Rust](rust/examples/classification-example)
 
 [AssemblyScript](assemblyscript/examples/object-classification.ts)
+
+To build and run the image classification example use `./build.sh rust` for the Rust version or `./build.sh as` for AssemblyScript
+
 ## Related Links
 ---
 [WASI](https://github.com/WebAssembly/WASI)
