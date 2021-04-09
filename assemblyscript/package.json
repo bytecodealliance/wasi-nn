@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "description": "WASI-NN for standalone WASM applications",
   "scripts": {
-    "test": "node tests",
     "asbuild:untouched": "asc examples/object-classification.ts --runtime stub --use abort=examples/object-classification/wasi_abort --target debug",
     "asbuild:optimized": "asc examples/object-classification.ts --runtime stub --use abort=examples/object-classification/wasi_abort --target release",
     "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized",
@@ -12,14 +11,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bytecodealliance/wasi-nn"
+    "url": "git+https://github.com/bytecodealliance/wasi-nn.git"
   },
   "keywords": [
     "wasi",
     "wasi-nn",
     "as"
   ],
-  "license": "MIT",
+  "license": "Apache 2.0",
   "bugs": {
     "url": "https://github.com/bytecodealliance/wasi-nn/issues"
   },
@@ -29,5 +28,8 @@
   },
   "devDependencies": {
     "assemblyscript": "^0.18.9"
+  },
+  "directories": {
+    "example": "examples"
   }
 }
