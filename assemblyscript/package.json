@@ -24,7 +24,8 @@
   },
   "homepage": "https://github.com/bytecodealliance/wasi-nn#readme",
   "dependencies": {
-    "as-wasi": "^0.4.4"
+    "as-wasi": "^0.4.4",
+    "wasi-nn": "^0.1.0"
   },
   "devDependencies": {
     "assemblyscript": "^0.18.9"
