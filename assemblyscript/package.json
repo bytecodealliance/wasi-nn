@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bytecodealliance/wasi-nn.git"
+    "url": "git+https://github.com/bytecodealliance/as-wasi-nn.git"
   },
   "keywords": [
     "wasi",
@@ -23,17 +23,13 @@
   ],
   "license": "Apache 2.0",
   "bugs": {
-    "url": "https://github.com/bytecodealliance/wasi-nn/issues"
+    "url": "https://github.com/bytecodealliance/as-wasi-nn/issues"
   },
-  "homepage": "https://github.com/bytecodealliance/wasi-nn#readme",
+  "homepage": "https://github.com/bytecodealliance/as-wasi-nn#readme",
   "dependencies": {
-    "as-wasi": "^0.4.4",
-    "wasi-nn": "^0.1.0"
+    "as-wasi": "^0.4.4"
   },
   "devDependencies": {
     "assemblyscript": "^0.18.9"
-  },
-  "directories": {
-    "example": "examples"
   }
 }

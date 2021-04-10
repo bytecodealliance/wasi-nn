@@ -1,5 +1,5 @@
 import { FileSystem, Console, Process } from "as-wasi";
-import { Graph, Tensor, TensorType, GraphEncoding, ExecutionTarget } from "wasi-nn";
+import { Graph, Tensor, TensorType, GraphEncoding, ExecutionTarget } from "../assembly/as-wasi-nn";
 
 /**
  * Demonstrate running a ML classification using the wasi-nn API.
