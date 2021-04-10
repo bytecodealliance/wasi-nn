@@ -3,9 +3,7 @@
 
   <strong>A <a href="https://bytecodealliance.org/">Bytecode Alliance</a> project</strong>
 
-  <p>
-    <strong>WASI-NN for standalone WASM applications</strong>
-  </p>
+  <p><strong>High-level bindings for writing wasi-nn applications</strong></p>
 
   <p>
     <a href="https://github.com/bytecodealliance/wasi-nn/actions?query=workflow%3ACI">
@@ -15,35 +13,65 @@
 
 </div>
 
-## Introduction
----
-The purpose of this project is to provide WASI-NN bindings for Rust and AssemblyScript. The compiled WASM code can then be run by a runtime that supports wasi-nn, such as [wasmtime](https://wasmtime.dev/).
+### Introduction
 
-> __NOTE__: These bindings are experimental (use at your own risk) and subject to upstream changes in the wasi-nn
-> specification.
+This project provides high-level wasi-nn bindings for Rust and AssemblyScript. The basic idea: write
+your machine learning application in a high-level language using these bindings, compile it to
+WebAssembly, and run it in a WebAssembly runtime that supports the [wasi-nn] proposal, such as
+[Wasmtime].
 
-## Use
----
-[Rust README](rust/README.md)
+[Wasmtime]: https://wasmtime.dev
+[wasi-nn]: https://github.com/WebAssembly/wasi-nn
 
-[AssemblyScript README](assemblyscript/README.md)
+> __NOTE__: These bindings are experimental (use at your own risk) and subject to upstream changes
+> in the [wasi-nn] specification.
 
-## Examples
----
-### Image classification:
 
-[Rust](rust/examples/classification-example)
+### Use
 
-[AssemblyScript](assemblyscript/examples/object-classification.ts)
+ - In Rust, download the [crate from crates.io][crates.io] by adding `wasi-nn = "0.1"` as a Cargo
+   dependency; more information in the [Rust README].
+ - In AssemblyScript, download the [package from npmjs.com][npmjs.com] by adding `"as-wasi-nn":
+   "^0.1"` as an NPM dependency; more information in the [AssemblyScript README].
 
-To build and run the image classification example use `./build.sh rust` for the Rust version or `./build.sh as` for AssemblyScript
+[crates.io]: https://crates.io/crates/wasi-nn
+[Rust README]: rust/README.md
+[npmjs.com]: https://www.npmjs.com/package/wasi-nn
+[AssemblyScript README]: assemblyscript/README.md
 
-## Related Links
----
-[WASI](https://github.com/WebAssembly/WASI)
 
-[Neural Network proposal for WASI](https://github.com/WebAssembly/wasi-nn)
+### Examples
 
-[Wasmtime](https://wasmtime.dev/)
+This repository includes examples of using these bindings. See the [Rust example] and
+[AssemblyScript example] to walk through an end-to-end image classification using an AlexNet model.
+Run them with:
+ - `./build.sh rust` runs the [Rust example]
+ - `./build.sh as` runs the [AssemblyScript example]
 
-[AssemblyScript](https://www.assemblyscript.org/)
+[Rust example]: rust/examples/classification-example
+[AssemblyScript example]: assemblyscript/examples/object-classification.ts
+
+
+### Related Links
+
+- [WASI]
+- [wasi-nn]
+- [Wasmtime]
+- [AssemblyScript]
+
+[WASI]: https://github.com/WebAssembly/WASI
+[AssemblyScript]: https://www.assemblyscript.org/
+
+
+### License
+
+This project is licensed under the Apache 2.0 license. See [LICENSE] for more details.
+
+[LICENSE]: LICENSE
+
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in
+this project by you, as defined in the Apache-2.0 license, shall be licensed as above, without any
+additional terms or conditions.

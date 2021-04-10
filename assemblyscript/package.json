@@ -1,7 +1,7 @@
 {
-  "name": "wasi-nn",
+  "name": "as-wasi-nn",
   "version": "0.1.0",
-  "description": "WASI-NN for standalone WASM applications",
+  "description": "High-level wasi-nn bindings for AssemblyScript",
   "scripts": {
     "asbuild:untouched": "asc examples/object-classification.ts --runtime stub --use abort=examples/object-classification/wasi_abort --target debug",
     "asbuild:optimized": "asc examples/object-classification.ts --runtime stub --use abort=examples/object-classification/wasi_abort --target release",
@@ -16,7 +16,10 @@
   "keywords": [
     "wasi",
     "wasi-nn",
-    "as"
+    "as",
+    "assemblyscript",
+    "ml",
+    "machine learning"
   ],
   "license": "Apache 2.0",
   "bugs": {
