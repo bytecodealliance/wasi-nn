@@ -2,9 +2,14 @@
 name = "wasi-nn"
 version = "0.1.0"
 authors = ["The Bytecode Alliance Developers"]
+description = "High-level Rust bindings for wasi-nn"
+license = "Apache-2.0 WITH LLVM-exception"
+categories = ["wasm", "computer-vision"]
+keywords = ["webassembly", "wasm", "neural-network"]
+repository = "https://github.com/bytecodealliance/wasi-nn"
 readme = "README.md"
 edition = "2018"
-publish = false
+publish = true
 
 [dependencies]
 
