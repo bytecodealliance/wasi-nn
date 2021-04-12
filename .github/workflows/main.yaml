@@ -39,10 +39,9 @@ jobs:
         run: |
           rustup target add wasm32-wasi
           rustup target add wasm32-unknown-unknown
-          rustup +nightly target add x86_64-unknown-linux-gnu
           git clone https://github.com/bytecodealliance/wasmtime --recursive
           cd wasmtime
-          OPENVINO_INSTALL_DIR=/opt/intel/openvino cargo +nightly build -p wasmtime-cli --features wasi-nn --release
+          OPENVINO_INSTALL_DIR=/opt/intel/openvino cargo build -p wasmtime-cli --features wasi-nn --release
           sudo ln -s $(realpath target/release/wasmtime) /usr/local/bin/wasmtime
 
       # Runs a single command using the runners shell
