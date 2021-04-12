@@ -9,6 +9,9 @@
     <a href="https://github.com/bytecodealliance/wasi-nn/actions?query=workflow%3ACI">
       <img src="https://github.com/bytecodealliance/wasi-nn/workflows/CI/badge.svg" alt="CI status"/>
     </a>
+    <a href="https://crates.io/crates/wasi-nn">
+      <img src="https://img.shields.io/crates/v/wasi-nn.svg"/>
+    </a>
     <a href="https://www.npmjs.com/package/as-wasi-nn">
       <img src="https://img.shields.io/npm/v/as-wasi-nn.svg"/>
     </a>
