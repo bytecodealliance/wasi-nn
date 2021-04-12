@@ -49,8 +49,23 @@ jobs:
         run: |
           echo Building and running the Rust Wasi-NN example
           ./build.sh rust
+
       # Runs a set of commands using the runners shell
       - name: Build and run AssemblyScript example
         run: |
           echo Building and running the Rust Wasi-NN example
           ./build.sh as
+
+      # Test we can publish to NPM
+      - name: Publish NPM dryrun
+        run: |
+          echo Publish NPM dryrun
+          cd assemblyscript
+          npm publish --dry-run
+          
+      # Test we can publish to crates.io
+      - name: Publish crates.io dryrun
+        run: |
+          echo Publish crates.io dryrun
+          cd rust
+          cargo publish --dry-run
