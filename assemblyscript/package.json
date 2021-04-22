@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "description": "High-level wasi-nn bindings for AssemblyScript",
   "scripts": {
-    "asbuild:untouched": "asc examples/object-classification.ts --runtime stub --use abort=examples/object-classification/wasi_abort --target debug",
-    "asbuild:optimized": "asc examples/object-classification.ts --runtime stub --use abort=examples/object-classification/wasi_abort --target release",
+    "asbuild:untouched": "asc examples/object-classification.ts --runtime stub --use abort=examples/object-classification/wasi_abort --target debug --enable simd",
+    "asbuild:optimized": "asc examples/object-classification.ts --runtime stub --use abort=examples/object-classification/wasi_abort --target release --enable simd",
     "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized",
     "demo": "npm run asbuild && ./demo.sh",
     "nn": "./wasmtime run build/optimized.wasm --dir build",
