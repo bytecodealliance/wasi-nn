@@ -6,12 +6,12 @@
 set -e
 DOWNLOAD_DIR="$(dirname "$0" | xargs dirname)/build"
 WASMTIME_DIR=$(dirname "$0" | xargs dirname)
-FIXTURE=https://github.com/intel/openvino-rs/raw/main/crates/openvino/tests/fixtures/alexnet
+FIXTURE=https://github.com/intel/openvino-rs/raw/main/crates/openvino/tests/fixtures/mobilenet
 
 # Download all necessary test fixtures to the temporary directory.
-wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/alexnet.bin
-wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/alexnet.xml
-wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/tensor-1x3x227x227-f32.bgr
+wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/mobilenet.bin
+wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/mobilenet.xml
+wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/tensor-1x224x224x3-f32.bgr
 
 # Run the demo
 wasmtime run build/optimized.wasm --dir build
