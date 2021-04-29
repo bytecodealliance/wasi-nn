@@ -7,11 +7,12 @@ import { Graph, Tensor, TensorType, GraphEncoding, ExecutionTarget } from "../as
  */
 export function main(): i32 {
     Console.log("Loading graph...");
-    const graph = Graph.load([readBytes("alexnet.xml"), readBytes("alexnet.bin")], GraphEncoding.openvino, ExecutionTarget.cpu);
+   
+    const graph = Graph.load([readBytes("mobilenet.xml"), readBytes("mobilenet.bin")], GraphEncoding.openvino, ExecutionTarget.cpu);
 
     Console.log("Setting up execution context...");
     const context = graph.initExecutionContext();
-    const input = new Tensor([1, 3, 227, 227], TensorType.f32, readBytes("tensor-1x3x227x227-f32.bgr"));
+    const input = new Tensor([1, 3, 224, 224], TensorType.f32, readBytes("tensor-1x224x224x3-f32.bgr"));
     context.setInput(0, input);
 
     Console.log("Running classification...");

@@ -17,8 +17,8 @@ import * as wasi_ephemeral_nn from './wasi_ephemeral_nn';
 
 function getArrayPtr<T>(data: T): u32 {
     // Only typed arrays have byteOffset. Cast to typed.
-    let u32Data = Uint32Array.wrap(data.buffer);
-    return (changetype<u32>(u32Data.buffer) + u32Data.byteOffset);
+    let u8Data = Uint8Array.wrap(data.buffer);
+    return (changetype<u32>(u8Data.buffer) + u8Data.byteOffset);
 }
 
 export class Graph {
@@ -79,7 +79,7 @@ export class ExecutionContext {
     }
 
     getOutput(index: u32): Tensor {
-        let maxBufferLength = 4000; // TODO allow user to configure this
+        let maxBufferLength = 4004; // TODO allow user to configure this
         let outputBuffer = new Array<u8>(maxBufferLength).fill(0);
         let bytesWritten: u32 = changetype<u32>(memory.data(4));
         let resultCode = wasi_ephemeral_nn.get_output(load<u32>(this.pointer), index,
