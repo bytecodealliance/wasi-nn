@@ -17,7 +17,8 @@ export function main(): i32 {
 
     Console.log("Running classification...");
     context.compute();
-    const output = context.getOutput(0);
+    let maxBufferLength = 4004; // Size of our output buffer
+    const output = context.getOutput(0, new Array<u8>(maxBufferLength).fill(0));
 
     const results = sortResults(output, 5);
     Console.log("Top 5 results: ");
