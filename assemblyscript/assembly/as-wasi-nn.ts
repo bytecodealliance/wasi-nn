@@ -81,7 +81,7 @@ export class ExecutionContext {
     // TODO once we have functions to get the output buffer size, we shouldn't need the user to pass in the buffer.
     // NOTE: If you get a NotEnoughMemory error, try upping the size of outputBuffer
     getOutput(index: u32, outputBuffer: Array<u8>): Tensor {
-        let maxBufferLength = outputBuffer.length; // TODO allow user to configure this
+        let maxBufferLength = outputBuffer.length;
         let bytesWritten: u32 = changetype<u32>(memory.data(4));
         let resultCode = wasi_ephemeral_nn.get_output(load<u32>(this.pointer), index,
             changetype<u32>(getArrayPtr(outputBuffer)),
