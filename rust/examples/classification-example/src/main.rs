@@ -1,6 +1,7 @@
 use std::convert::TryInto;
 use std::fs;
 use wasi_nn;
+mod imagenet_classes;
 
 pub fn main() {
     let xml = fs::read_to_string("fixture/mobilenet.xml").unwrap();
@@ -52,10 +53,17 @@ pub fn main() {
         )
         .unwrap();
     }
+    
+    let results = sort_results(&output_buffer);
     println!(
         "Found results, sorted top 5: {:?}",
-        &sort_results(&output_buffer)[..5]
-    )
+        &results[..5]
+    );
+
+    for i in 0..5 {
+        println!("{}.) {}", i + 1, imagenet_classes::IMAGENET_CLASSES[results[i].0]);
+    }
+    
 }
 
 // Sort the buffer of probabilities. The graph places the match probability for each class at the
