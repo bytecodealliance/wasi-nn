@@ -1,5 +1,6 @@
 import { FileSystem, Console, Process } from "as-wasi";
 import { Graph, Tensor, TensorType, GraphEncoding, ExecutionTarget } from "../assembly/as-wasi-nn";
+import { IMAGENET_CLASSES } from "../assembly/imagenet_classes";
 
 /**
  * Demonstrate running a ML classification using the wasi-nn API.
@@ -24,7 +25,7 @@ export function main(): i32 {
     Console.log("Top 5 results: ");
     // TODO figure out why we cannot use `forEach` here.
     for (let i = 0; i < results.length; i++) {
-        Console.log("  " + results[i].id.toString() + " = " + results[i].probability.toString());
+        Console.log((i + 1).toString() + ".) " + IMAGENET_CLASSES[results[i].id] + " : (" + results[i].id.toString() + ", " + results[i].probability.toString() + ")");
     }
     return 0;
 }
