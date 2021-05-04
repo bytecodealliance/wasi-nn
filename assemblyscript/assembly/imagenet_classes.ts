@@ -15,6 +15,8 @@
  * =============================================================================
  */
 
+/* The code in this file is adapted from https://github.com/tensorflow/tfjs-models/blob/master/mobilenet/src/imagenet_classes.ts */
+ 
 export const IMAGENET_CLASSES: Array<string> = [
     'tench, Tinca tinca',
     'goldfish, Carassius auratus',
