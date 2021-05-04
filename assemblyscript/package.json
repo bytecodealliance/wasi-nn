@@ -31,7 +31,7 @@
     "as-wasi": "^0.4.4"
   },
   "devDependencies": {
-    "assemblyscript": "^0.18.9",
+    "assemblyscript": "^0.18.31",
     "patch-package": "^6.4.7"
   }
 }
