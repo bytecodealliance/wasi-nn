@@ -54,7 +54,7 @@ function readBytes(filePath: string): u8[] {
  * @returns an array of results
  */
 function sortResults(output: Tensor, topK: u32): Result[] {
-    const probabilities = Float32Array.wrap(output.toArrayBuffer());
+    const probabilities = Float32Array.wrap(output.toArrayBuffer()).slice(1);
     const results = new Array<Result>(probabilities.length);
     // TODO figure out why we cannot use `map` here.
     for (let i = 0; i < probabilities.length; i++) {
