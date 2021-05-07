@@ -12,6 +12,7 @@ FIXTURE=https://github.com/intel/openvino-rs/raw/main/crates/openvino/tests/fixt
 wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/mobilenet.bin
 wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/mobilenet.xml
 wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/tensor-1x224x224x3-f32.bgr
+cp -rn images $DOWNLOAD_DIR
 
 # Run the demo
 wasmtime run build/optimized.wasm --dir build
