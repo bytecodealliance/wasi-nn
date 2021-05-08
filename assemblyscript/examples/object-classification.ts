@@ -8,24 +8,27 @@ import { IMAGENET_CLASSES } from "../assembly/imagenet_classes";
  */
 export function main(): i32 {
     Console.log("Loading graph...");
-   
     const graph = Graph.load([readBytes("mobilenet.xml"), readBytes("mobilenet.bin")], GraphEncoding.openvino, ExecutionTarget.cpu);
 
     Console.log("Setting up execution context...");
     const context = graph.initExecutionContext();
-    const input = new Tensor([1, 3, 224, 224], TensorType.f32, readBytes("tensor-1x224x224x3-f32.bgr"));
-    context.setInput(0, input);
 
-    Console.log("Running classification...");
-    context.compute();
-    let maxBufferLength = 4004; // Size of our output buffer
-    const output = context.getOutput(0, new Array<u8>(4004).fill(0));
+    for (let i = 0; i < 5; i++) {
+        const input = new Tensor([1, 3, 224, 224], TensorType.f32, readBytes("images/" + i.toString() + ".bgr"));
+        context.setInput(0, input);
 
-    const results = sortResults(output, 5);
-    Console.log("Top 5 results: ");
-    // TODO figure out why we cannot use `forEach` here.
-    for (let i = 0; i < results.length; i++) {
-        Console.log((i + 1).toString() + ".) " + IMAGENET_CLASSES[results[i].id] + " : (" + results[i].id.toString() + ", " + results[i].probability.toString() + ")");
+        Console.log("Running classification...");
+        context.compute();
+        let maxBufferLength = 4004; // Size of our output buffer
+        const output = context.getOutput(0, new Array<u8>(4004).fill(0));
+
+        const results = sortResults(output, 5);
+        Console.log("Top 5 results: ");
+
+        // TODO figure out why we cannot use `forEach` here.
+        for (let i = 0; i < results.length; i++) {
+            Console.log((i + 1).toString() + ".) " + IMAGENET_CLASSES[results[i].id] + " : (" + results[i].id.toString() + ", " + results[i].probability.toString() + ")");
+        }
     }
     return 0;
 }
@@ -76,10 +79,10 @@ class Result {
  * https://github.com/jedisct1/as-wasi/blob/master/assembly/as-wasi.ts#L1100); that function should
  * be exported in as-wasi's `index` (TODO) to make it accessible using `--use
  * abort=as-wasi/wasi_abort` (see https://www.assemblyscript.org/debugging.html#overriding-abort).
- * @param message 
- * @param fileName 
- * @param lineNumber 
- * @param columnNumber 
+ * @param message
+ * @param fileName
+ * @param lineNumber
+ * @param columnNumber
  */
 export function wasi_abort(
     message: string = "",
