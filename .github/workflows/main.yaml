@@ -39,7 +39,7 @@ jobs:
         run: |
           rustup target add wasm32-wasi
           rustup target add wasm32-unknown-unknown
-          git clone https://github.com/bytecodealliance/wasmtime -b v0.26.0 --depth 1 --recursive
+          git clone https://github.com/bytecodealliance/wasmtime -b v0.27.0 --depth 1 --recursive
           cd wasmtime
           OPENVINO_INSTALL_DIR=/opt/intel/openvino cargo build -p wasmtime-cli --features wasi-nn --release
           sudo ln -s $(realpath target/release/wasmtime) /usr/local/bin/wasmtime

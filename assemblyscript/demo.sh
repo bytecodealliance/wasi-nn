@@ -15,4 +15,4 @@ wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/tensor-1x224x224x3-f
 cp -rn images $DOWNLOAD_DIR
 
 # Run the demo
-wasmtime run build/optimized.wasm --dir build
+wasmtime run build/optimized.wasm --dir build --wasi-modules=experimental-wasi-nn
