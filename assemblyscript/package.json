@@ -7,7 +7,7 @@
     "asbuild:optimized": "asc examples/object-classification.ts --runtime stub --use abort=examples/object-classification/wasi_abort --target release --enable simd",
     "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized",
     "demo": "npm run asbuild && ./demo.sh",
-    "nn": "./wasmtime run build/optimized.wasm --dir build",
+    "nn": "./wasmtime run build/optimized.wasm --dir build --wasi-modules=experimental-wasi-nn",
     "postinstall": "patch-package"
   },
   "repository": {
