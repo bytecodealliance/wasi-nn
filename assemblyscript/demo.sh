@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Sets up the AssemblyScript demo for wasi-nn. Note you'll need to build and copy the wasmtime CLI 
+# Sets up the AssemblyScript demo for wasi-nn. Note you'll need to build and copy the wasmtime CLI
 # and copy it to this directory for this script to work.
 
 set -e
@@ -11,7 +11,6 @@ FIXTURE=https://github.com/intel/openvino-rs/raw/main/crates/openvino/tests/fixt
 # Download all necessary test fixtures to the temporary directory.
 wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/mobilenet.bin
 wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/mobilenet.xml
-wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/tensor-1x224x224x3-f32.bgr
 cp -rn images $DOWNLOAD_DIR
 
 # Run the demo

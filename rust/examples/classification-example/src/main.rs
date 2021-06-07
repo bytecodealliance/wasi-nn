@@ -28,15 +28,16 @@ pub fn main() {
     // Load a tensor that precisely matches the graph input tensor (see
     // `fixture/frozen_inference_graph.xml`).
     for i in 0..5 {
-        let filename: String = format!("{}{}{}", "fixture/images/", i, ".jpg");
-        let tensor_data = image_to_tensor(filename, 224, 224);
-        println!("Read input tensor, size in bytes: {}", tensor_data.len());
-        let tensor = wasi_nn::Tensor {
-            dimensions: &[1, 3, 224, 224],
-            r#type: wasi_nn::TENSOR_TYPE_F32,
-            data: &tensor_data,
-        };
+        let filename: String = format!("{}{}{}", "images/", i, ".jpg");
+        let bytes: &[u8] = filename.as_bytes();
         unsafe {
+            let tensor_data = wasi_nn::image_to_tensor(bytes, 224, 224, wasi_nn::TENSOR_TYPE_F32).unwrap();
+
+            let tensor = wasi_nn::Tensor {
+                dimensions: &[1, 3, 224, 224],
+                r#type: wasi_nn::TENSOR_TYPE_F32,
+                data: &tensor_data,
+            };
             wasi_nn::set_input(context, 0, tensor).unwrap();
         }
 
@@ -85,29 +86,6 @@ fn sort_results(buffer: &[f32]) -> Vec<InferenceResult> {
     results
 }
 
-// Take the image located at 'path', open it, resize it to height x width, and then converts
-// the pixel precision to FP32. The resulting BGR pixel vector is then returned.
-fn image_to_tensor(path: String, height: u32, width: u32) -> Vec<u8> {
-    let pixels = Reader::open(path).unwrap().decode().unwrap();
-    let dyn_img: DynamicImage = pixels.resize_exact(width, height, image::imageops::Triangle);
-    let bgr_img = dyn_img.to_bgr8();
-    // Get an array of the pixel values
-    let raw_u8_arr: &[u8] = &bgr_img.as_raw()[..];
-    // Create an array to hold the f32 value of those pixels
-    let bytes_required = raw_u8_arr.len() * 4;
-    let mut u8_f32_arr:Vec<u8> = vec![0; bytes_required];
-
-    for i in 0..raw_u8_arr.len()  {
-        // Read the number as a f32 and break it into u8 bytes
-        let u8_f32: f32 = raw_u8_arr[i] as f32;
-        let u8_bytes = u8_f32.to_ne_bytes();
-
-        for j in 0..4 {
-            u8_f32_arr[(i * 4) + j] = u8_bytes[j];
-        }
-    }
-    return u8_f32_arr;
-}
 // A wrapper for class ID and match probabilities.
 #[derive(Debug, PartialEq)]
 struct InferenceResult(usize, f32);

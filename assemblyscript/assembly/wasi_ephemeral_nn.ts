@@ -8,13 +8,13 @@
  * https://github.com/WebAssembly/wasi-nn/blob/master/phases/ephemeral/witx/wasi_ephemeral_nn.witx),
  * we used some WIP tooling to display WAT signatures of WASI modules (see
  * https://github.com/WebAssembly/WASI/pull/377). Looking just at the first function, we know that
- * we need to expose a raw interface that looks something like: 
+ * we need to expose a raw interface that looks something like:
  *
  *   (import "wasi_ephemeral_nn" "load" (func (param I32 I32 I32 I32 I32) (result I32)))
  *
  * It is interesting to note that the equivalent raw Rust interface (see
  * https://github.com/bytecodealliance/wasmtime/blob/main/crates/wasi-nn/examples/wasi-nn-rust-bindings/src/generated.rs#L163-L169),
- * looks like: 
+ * looks like:
  *
  *   pub fn load(builder_ptr: *const GraphBuilder, builder_len: usize, encoding: GraphEncoding,
  *     target: ExecutionTarget, graph: *mut Graph) -> NnErrno;
@@ -28,3 +28,4 @@ export declare function init_execution_context(graph: i32, context: i32): i32;
 export declare function set_input(context: i32, index: i32, tensor: i32): i32;
 export declare function compute(context: i32): i32;
 export declare function get_output(context: i32, index: i32, out_buffer: i32, buffer_max_size: i32, out_bytes_written: i32): i32;
+export declare function image_to_tensor(path_ptr: i32, path_len: i32, width: i32, height: i32, precision: i32, out_buffer: i32, buffer_max_size: i32): i32;

@@ -60,6 +60,7 @@ pub unsafe fn load(
     target: ExecutionTarget,
 ) -> Result<Graph> {
     let mut graph = MaybeUninit::uninit();
+    let buildtst = builder.as_ptr();
     let rc = wasi_ephemeral_nn::load(
         builder.as_ptr(),
         builder.len(),
@@ -152,6 +153,41 @@ pub unsafe fn compute(context: GraphExecutionContext) -> Result<()> {
     }
 }
 
+/// Convert various image types (jpg, gif, png, etc) to a tensor.
+///
+/// Returns a vector of u8 containing the BGR pixel data for the tensor. Returns an error if file doesn't exist
+pub unsafe fn image_to_tensor(
+    path: &[u8],
+    width: u32,
+    height: u32,
+    precision: TensorType
+) -> Result<Vec<u8>> {
+
+    let mut bytes = 1;
+
+    match precision {
+        TENSOR_TYPE_F32 | TENSOR_TYPE_I32 => bytes = 4,
+        TENSOR_TYPE_F16 => bytes = 2,
+        _ => bytes = 1
+
+    }
+
+    // Calculate the bufsize, the 3 is for RGB values
+    let bufsize: usize = width as usize * height as usize * 3 * bytes;
+    let path_ptr: *const u8 = path.as_ptr();
+    let mut out_buffer = vec![0; bufsize];
+    // Need a pointer to a [u8] so do the conversion before calling image_to_tensor
+    let mut out_arr: &mut[u8] = out_buffer.as_mut_slice();
+    let out_arr_ptr: *const u8 = out_arr.as_ptr();
+    let rc = wasi_ephemeral_nn::image_to_tensor(path_ptr, path.len(), width, height, precision, out_arr_ptr, out_arr.len());
+
+    if let Some(err) = Error::from_raw_error(rc) {
+        Err(err)
+    } else {
+        Ok(out_buffer)
+    }
+}
+
 #[allow(improper_ctypes)]
 pub mod wasi_ephemeral_nn {
     use super::*;
@@ -196,5 +232,18 @@ pub mod wasi_ephemeral_nn {
         ///
         /// This should return an $nn_errno (TODO define) if the inputs are not all defined.
         pub fn compute(context: GraphExecutionContext) -> NnErrno;
+
+        /// Convert various image types (jpg, gif, png, etc) to a tensor.
+        ///
+        /// Returns a vector of u8 containing the BGR pixel data for the tensor. Returns an error if file doesn't exist
+        pub fn image_to_tensor(
+            path: *const u8,
+            path_len: usize,
+            width: u32,
+            height: u32,
+            precision: TensorType,
+            out_buffer: *const u8,
+            path_len: usize
+        ) -> NnErrno;
     }
 }

@@ -1,5 +1,5 @@
 import { FileSystem, Console, Process } from "as-wasi";
-import { Graph, Tensor, TensorType, GraphEncoding, ExecutionTarget } from "../assembly/as-wasi-nn";
+import { Graph, Tensor, TensorType, GraphEncoding, ExecutionTarget, image_to_tensor } from "../assembly/as-wasi-nn";
 import { IMAGENET_CLASSES } from "../assembly/imagenet_classes";
 
 /**
@@ -14,7 +14,10 @@ export function main(): i32 {
     const context = graph.initExecutionContext();
 
     for (let i = 0; i < 5; i++) {
-        const input = new Tensor([1, 3, 224, 224], TensorType.f32, readBytes("images/" + i.toString() + ".bgr"));
+
+        let imgData = image_to_tensor("images/" + i.toString() + ".jpg", 224, 224, TensorType.f32);
+
+        const input = new Tensor([1, 3, 224, 224], TensorType.f32, imgData);
         context.setInput(0, input);
 
         Console.log("Running classification...");

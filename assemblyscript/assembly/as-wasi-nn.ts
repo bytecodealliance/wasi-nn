@@ -15,6 +15,31 @@
  */
 import * as wasi_ephemeral_nn from './wasi_ephemeral_nn';
 
+export function image_to_tensor(path: string, width: u32, height: u32, precision: TensorType): u8[] {
+
+    let bytes = 1;
+
+    if (precision === TensorType.f32 || precision === TensorType.i32) {
+        bytes = 4;
+    } else if (precision === TensorType.f16) {
+        bytes = 2;
+    }
+
+    // The 3 is because we have Red, Green, and Blue in each pixel.
+    let out_buffer = new Array<u8>(width * height * 3 * bytes).fill(0);
+    let pathTrim = path.trim();
+    let ut8: u8[] = [];
+
+    // Convert path to u8[]
+    for (let i = 0; i < pathTrim.length; i++) {
+        ut8[i] = pathTrim.charCodeAt(i) as u8;
+    }
+
+    let u8ptr = getArrayPtr(ut8);
+    wasi_ephemeral_nn.image_to_tensor(u8ptr, ut8.length, width, height, precision, getArrayPtr(out_buffer), out_buffer.length);
+    return out_buffer;
+}
+
 function getArrayPtr<T>(data: T): u32 {
     // Only typed arrays have byteOffset. Cast to typed.
     let u8Data = Uint8Array.wrap(data.buffer);
@@ -115,7 +140,7 @@ export class Tensor {
 
     /**
      * Convert data to an `ArrayBuffer` for using data views.
-     * @returns an ArrayBuffer with a copy of the bytes in `this.data` 
+     * @returns an ArrayBuffer with a copy of the bytes in `this.data`
      */
     toArrayBuffer(): ArrayBuffer {
         const buffer = new ArrayBuffer(this.data.length);
