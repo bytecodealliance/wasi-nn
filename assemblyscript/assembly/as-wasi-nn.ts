@@ -15,12 +15,6 @@
  */
 import * as wasi_ephemeral_nn from './wasi_ephemeral_nn';
 
-function getArrayPtr<T>(data: T): u32 {
-    // Only typed arrays have byteOffset. Cast to typed.
-    let u8Data = Uint8Array.wrap(data.buffer);
-    return (changetype<u32>(u8Data.buffer) + u8Data.byteOffset);
-}
-
 export class Graph {
     private constructor(private pointer: i32) { }
 
@@ -139,4 +133,18 @@ export class WasiNnError extends Error {
         super(message + "; error code = " + code);
         this.name = "WasiNnError";
     }
+}
+
+/**
+ * Helper function to capture the pointer to the beginning of an array.
+ * @param data an array
+ * @returns a pointer to the array data
+ */
+// @ts-ignore: decorator
+@inline
+function getArrayPtr<T>(data: T[]): u32 {
+    // Use the documented `dataStart` field; see
+    // https://www.assemblyscript.org/memory.html#arraybufferview-layout. We cast to a `u32` to
+    // match the wasi-nn expected types.
+    return changetype<u32>(data.dataStart);
 }
