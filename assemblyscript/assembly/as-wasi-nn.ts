@@ -15,9 +15,19 @@
  */
 import * as wasi_ephemeral_nn from './wasi_ephemeral_nn';
 
+/**
+ * A machine learning model.
+ */
 export class Graph {
     private constructor(private pointer: i32) { }
 
+    /**
+     * Create a `Graph` from one or more binary blobs.
+     * @param builder the binary blobs that make up the graph
+     * @param encoding the framework required for 
+     * @param target the device on which to run the graph
+     * @returns an initialized `Graph`
+     */
     static load(builder: u8[][], encoding: GraphEncoding, target: ExecutionTarget): Graph {
         let graphBuilder: u32[] = [];
 
@@ -34,6 +44,11 @@ export class Graph {
         return new Graph(graphPointer);
     }
 
+    /**
+     * Create an execution context for performing inference requests. This indirection separates the
+     * "graph loading" phase (potentially expensive) from the "graph execution" phase. 
+     * @returns an `ExecutionContext`
+     */
     initExecutionContext(): ExecutionContext {
         let executionContextPointer: u32 = changetype<u32>(memory.data(4));
         let resultCode = wasi_ephemeral_nn.init_execution_context(load<u32>(this.pointer), executionContextPointer);
@@ -44,20 +59,35 @@ export class Graph {
     }
 }
 
+/**
+ * The allowed encodings for `Graph`s. This must match what is defined in the specification.
+ */
 export const enum GraphEncoding {
     openvino = 0,
 }
 
+/**
+ * The allowed execution targets. These values must match the values defined in the specification.
+ */
 export const enum ExecutionTarget {
     cpu = 0,
     gpu = 1,
     tpu = 2,
 }
 
+/**
+ * The context for computing an inference request.
+ */
 export class ExecutionContext {
     // TODO this should be module-private.
     constructor(private pointer: i32) { }
 
+    /**
+     * Set an input parameter prior to calling `compute`. This will fail if the `index` is not a
+     * valid graph input.
+     * @param index the index of the input parameter to set
+     * @param tensor the input tensor data
+     */
     setInput(index: u32, tensor: Tensor): void {
         let resultCode = wasi_ephemeral_nn.set_input(load<u32>(this.pointer), index, tensor.asPointer());
         if (resultCode != 0) {
@@ -65,6 +95,9 @@ export class ExecutionContext {
         }
     }
 
+    /**
+     * Compute an inference request.
+     */
     compute(): void {
         let resultCode = wasi_ephemeral_nn.compute(load<u32>(this.pointer));
         if (resultCode != 0) {
@@ -72,8 +105,15 @@ export class ExecutionContext {
         }
     }
 
-    // TODO once we have functions to get the output buffer size, we shouldn't need the user to pass in the buffer.
-    // NOTE: If you get a NotEnoughMemory error, try upping the size of outputBuffer
+    /**
+     * Retrieve the result of an inference after calling `compute`. NOTE: If you get a
+     * `NotEnoughMemory` error, try upping the size of `outputBuffer`.
+     * @param index the index of the output parameter to retrieve
+     * @param outputBuffer the output buffer to use as the destination for the output bytes; once we
+     * have functions to get the output buffer size, this parameter will become unnecessary and
+     * should be removed (TODO).
+     * @returns the output tensor
+     */
     getOutput(index: u32, outputBuffer: Array<u8>): Tensor {
         let maxBufferLength = outputBuffer.length;
         let bytesWritten: u32 = changetype<u32>(memory.data(4));
@@ -88,6 +128,9 @@ export class ExecutionContext {
     }
 }
 
+/**
+ * Contains the data passed to inference.
+ */
 export class Tensor {
     constructor(public dimensions: u32[], public type: TensorType, public data: u8[]) { }
 
@@ -121,6 +164,9 @@ export class Tensor {
     }
 }
 
+/**
+ * The type of data contained within a `Tensor`.
+ */
 export const enum TensorType {
     f16 = 0,
     f32 = 1,
@@ -128,6 +174,9 @@ export const enum TensorType {
     i32 = 3
 }
 
+/**
+ * A wasi-nn failure.
+ */
 export class WasiNnError extends Error {
     constructor(message: string = "", code: i32 = -1) {
         super(message + "; error code = " + code);
