@@ -11,6 +11,20 @@ These bindings provide access to the wasi-nn API calls provided by Wasmtime, as 
 
 ![Binding stack](stack.png "Binding stack")
 
+## **Performance**
+---
+The AssemblyScript wasi-nn bindings perform as well, or even slightly better, than the Rust wasi-nn bindings based on initial tests. Here are the results of identifying an image 1000 times. Measurments were taken using [sightglass](https://github.com/bytecodealliance/sightglass). This test utilizes the MobileNet v2 model.
+
+### Multithread
+
+- Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz, 8 threads available, MobileNet v2 wasm-exclusive vs wasi-nn-as | 38.13ms  | 3.79ms   | 10.06x
+- Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz, 8 threads available, MobileNet v2 wasm-nn vs wasi-nn-as | 3.85ms   | 3.79ms   | 1.02x
+
+### Single Thread
+
+- Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz, 1 thread available, MobileNet v2 wasm-exclusive vs wasi-nn-as | 38.26ms  | 7.72ms   | 4.96x
+- Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz, 1 thread available, MobileNet v2 wasm-nn vs wasi-nn-as | 7.88ms   | 7.72ms   | 1.02x
+
 ## **Currently available functions and objects**
 ---
 - Graph - Graph data object.
@@ -26,35 +40,29 @@ These bindings provide access to the wasi-nn API calls provided by Wasmtime, as 
 - GraphEncoding - Enum value for what graph encoder to use. Currently only supports OpenVino.
 - ExecutionTarget - Enum value for what processor to use for computation. (cpu, gpu, or tpu).
 
-## **An example**
+## **Initial setup**
 ---
-You can find a code example on how to use these bindings in the [git repo](https://github.com/bytecodealliance/wasi-nn/tree/main/assemblyscript/examples). This example uses wasi-nn to identify items in pictures and uses a mobilenet test fixture, found [here.](https://github.com/intel/openvino-rs/raw/main/crates/openvino/tests/fixtures/mobilenet).
+[OpenVino](https://docs.openvinotoolkit.org/latest/openvino_docs_install_guides_installing_openvino_linux.html) is the backend we use to implement the wasi-nn API, you'll need to install according to their instructions.
 
-The example essentially consists of 7 steps. Note that readBytes is a helper function used to load files into a array of bytes.
-- 1.) Load the graph using Graph.load. In this step we pass in mobilenet.xml and mobilenet.bin as the graph builder array, specify GraphEncoding.openvino as our encoder, and specify we want to use the CPU with ExecutionTarget.cpu.
-- 2.) Create the context using Graph.initExecutionContext.
-- 3.) Create a Tensor of the desired dimensions, of type TensorType.f32, from the file 0.bgr. Our demo loops five times for images 0.bgr through 4.bgr.
-- 4.) Set the tensor as the input of the ExecutionContext using ExecutionContext.setInput.
-- 5.) Run ExecutionContext.compute to generate the results.
-- 6.) Save the results to a new u8 array using ExecutionContext.getOutput.
-- 7.) Sort results to find the most likely objects in the picture, and print the top 5.
+And [Wasmtime](https://wasmtime.dev/) is the runtime we are using to execute our compiled WASM File.
 
-### **Initial setup**
-First you'll need to include the AssemblyScript bindings in your project.
+
+Then you'll need to include the AssemblyScript bindings in your project.
 ```
 npm install as-wasi-nn --save
 ```
 You can find more info about the bindings on the [npmjs page](https://www.npmjs.com/package/as-wasi-nn) and the [github](https://github.com/bytecodealliance/wasi-nn).
 
-[OpenVino](https://docs.openvinotoolkit.org/latest/openvino_docs_install_guides_installing_openvino_linux.html) is the backend we use to implement the wasi-nn API, you'll need to install according to their instructions.
 
-And [Wasmtime](https://wasmtime.dev/) is the runtime we are using to execute our compiled WASM File.
+## **An example**
+---
+You can find a code example on how to use these bindings in the [git repo](https://github.com/bytecodealliance/wasi-nn/tree/main/assemblyscript/examples). This example uses wasi-nn to identify items in pictures and uses a mobilenet test fixture, found [here.](https://github.com/intel/openvino-rs/raw/main/crates/openvino/tests/fixtures/mobilenet).
 
 ### **To run the example**
 ---
-The easiest way to build the demo is to simply run `./build.sh as`, which will handle the steps below for you.
+The easiest way to build the demo is to simply run `./build.sh as`. This will handle all the steps below for you.
 
-To build it manually, you first need to compile your wasm file using the AssemblyScript compiler, asc.
+To build it manually, first your wasm file using the AssemblyScript compiler, asc.
 ```
 asc examples/object-classification.ts --use abort=examples/object-classification/wasi_abort --target release --enable simd
 ```
