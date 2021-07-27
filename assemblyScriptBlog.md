@@ -1,5 +1,5 @@
 # **Utilizing wasi-nn from AssemblyScript**
-JavaScript is one of the most popular programming languages today, and is used in a wide range of places outside the browser. A lot of what makes it popular is it's low entry barrier and abundance of ready to use libraries, making it easy to get started and make something great. However, due to the nature of being an interpreted language, its not always the most performant option, and often it can be difficult (or impossible) to access powerful low level capabilities. AssemblyScript and The [wasi-nn proposal](https://github.com/WebAssembly/wasi-nn) are geared towards alleviating these shortcomings. AssemblyScipt allows your JavaScript code to be compiled down to WebAssembly(WASM), which performs much closer to native speeds. And wasi-nn gives WebAssembly programs access to host-provided machine learning (ML) functions. Effectively this can give us the best of both worlds. The speed and security of native code, along with the simplicity and quick development provided by AssemblyScript.
+JavaScript is one of the most popular programming languages today, and is used in a wide range of places outside the browser. A lot of what makes it popular is it's low entry barrier and abundance of ready to use libraries, making it easy to get started and make something great. However, due to the nature of being a script language, its not always the most performant option, and often it can be difficult (or impossible) to access powerful low level capabilities. AssemblyScript and The [wasi-nn proposal](https://github.com/WebAssembly/wasi-nn) are geared towards alleviating these shortcomings. AssemblyScipt allows your JavaScript code to be compiled down to WebAssembly(WASM), which performs much closer to native speeds. And wasi-nn gives WebAssembly programs access to host-provided machine learning (ML) functions. Effectively this can give us the best of both worlds. The speed and security of native code, along with the simplicity and quick development provided by AssemblyScript.
 
 ## **Benefits of AssemblyScript**
 ---
@@ -7,7 +7,7 @@ AssemblyScript is a variant of Typescript, meaning it should be very familiar to
 
 ## **Bindings for AssemblyScript to wasi-nn ([as-wasi-nn](https://www.npmjs.com/package/as-wasi-nn))**
 ---
-These bindings provide access to the wasi-nn API calls provided by Wasmtime, as well as some useful objects to help in the creation of machine learning code. They give AssemblyScript developers an easy avenue for utilizing OpenVINO in their projects, without the need to port their work to Rust. In addition, the performance of the compiled AssemblyScript code is almost as fast as Rust in most cases.
+These bindings provide access to the wasi-nn API calls provided by Wasmtime, as well as some useful objects to help in the creation of machine learning code. They give AssemblyScript developers an easy avenue for utilizing native machine learning frameworks in their projects, without the need to port their work to Rust. In addition, the performance of the compiled AssemblyScript code is almost as fast as Rust in most cases.
 
 ![Binding stack](stack.png "Binding stack")
 
@@ -42,7 +42,7 @@ The AssemblyScript wasi-nn bindings perform as well, or even slightly better, th
 
 ## **Initial setup**
 ---
-[OpenVino](https://docs.openvinotoolkit.org/latest/openvino_docs_install_guides_installing_openvino_linux.html) is the backend we use to implement the wasi-nn API, you'll need to install according to their instructions.
+[OpenVino](https://docs.openvinotoolkit.org/latest/openvino_docs_install_guides_installing_openvino_linux.html) is one backend we use to implement the wasi-nn API, you'll need to install according to their instructions. Additional ML frameworks such ONNXRT are also supported.
 
 And [Wasmtime](https://wasmtime.dev/) is the runtime we are using to execute our compiled WASM File.
 
