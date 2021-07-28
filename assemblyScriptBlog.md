@@ -15,15 +15,7 @@ These bindings provide access to the wasi-nn API calls provided by Wasmtime, as 
 ---
 The AssemblyScript wasi-nn bindings perform as well, or even slightly better, than the Rust wasi-nn bindings based on initial tests. Here are the results of identifying an image 1000 times. Measurments were taken using [sightglass](https://github.com/bytecodealliance/sightglass). This test utilizes the MobileNet v2 model.
 
-### Multithread
-
-- Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz, 8 threads available, MobileNet v2 wasm-exclusive vs wasi-nn-as | 38.13ms  | 3.79ms   | 10.06x
-- Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz, 8 threads available, MobileNet v2 wasm-nn vs wasi-nn-as | 3.85ms   | 3.79ms   | 1.02x
-
-### Single Thread
-
-- Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz, 1 thread available, MobileNet v2 wasm-exclusive vs wasi-nn-as | 38.26ms  | 7.72ms   | 4.96x
-- Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz, 1 thread available, MobileNet v2 wasm-nn vs wasi-nn-as | 7.88ms   | 7.72ms   | 1.02x
+<img src="results.png" width="800">
 
 ## **Currently available functions and objects**
 ---
