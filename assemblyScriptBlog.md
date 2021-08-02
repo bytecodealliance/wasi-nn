@@ -111,3 +111,14 @@ Top 5 results:
 4.) bakery, bakeshop, bakehouse : (415, 0.002859988249838352)
 5.) barbershop : (424, 0.002460404299199581)
 ```
+# What is new with wasi-nn
+
+wasi-nn is growing in several ways: more ML backends and more devices.
+
+## wasi-nn on GPU
+
+On some cases on devices with GPU, it may make sense to offload machine learning inferencing to GPU due to power and performance considerations. With the OpenVINO backend, we verified that GPU support works as expected using wasi-nn’s GPU `execution_target`. The setup is not simple enough to describe here, requiring an [OpenCL runtime is required](https://software.intel.com/content/www/us/en/develop/articles/opencl-drivers.html) (e.g., this [Linux package distribution](https://github.com/intel/compute-runtime/blob/master/opencl/doc/DISTRIBUTIONS.md)) and ensuring that the integrated GPU is available to the runtime, but the classifications executed on the CPU also ran successfully on an integrated GPU. Note that choosing a GPU execution target may not make sense in all cases: for small models or constrained GPUs, the cost of moving data to and from the GPU may outweigh the benefits of parallel execution.
+
+## wasi-nn with the ONNX backend
+
+Radu Matei describes how to [implement wasi-nn using the ONNX backend](https://radu-matei.com/blog/wasi-nn-onnx/) and we plan to work with them to upstream support for multiple ML backends. 
