@@ -7,7 +7,7 @@ else
     BUILD_TYPE=$1
     WASI_NN_DIR=$(dirname "$0" | xargs dirname)
     WASI_NN_DIR=$(realpath $WASI_NN_DIR)
-    source /opt/intel/openvino/bin/setupvars.sh
+    source /opt/intel/openvino_2021/bin/setupvars.sh
 
     case $BUILD_TYPE in
         as)
