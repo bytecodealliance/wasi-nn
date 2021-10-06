@@ -72,11 +72,12 @@ pub fn calculate_buffer_size (
 }
 
 fn get_bytes_per_pixel (precision: TensorType) -> usize {
-    let mut bytes_per_pixel: usize = 1;
-    match precision {
-        TensorType::F32 | TensorType::I32 => bytes_per_pixel = 4,
-        TensorType::F16 => bytes_per_pixel = 2,
-        _ => bytes_per_pixel = 1
-    }
+
+    let bytes_per_pixel = match precision {
+        TensorType::F32 | TensorType::I32 => 4,
+        TensorType::F16 => 2,
+        _ => 1
+    };
+
     return bytes_per_pixel;
 }
