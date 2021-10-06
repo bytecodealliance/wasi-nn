@@ -24,7 +24,7 @@ export class Graph {
     /**
      * Create a `Graph` from one or more binary blobs.
      * @param builder the binary blobs that make up the graph
-     * @param encoding the framework required for 
+     * @param encoding the framework required for
      * @param target the device on which to run the graph
      * @returns an initialized `Graph`
      */
@@ -46,7 +46,7 @@ export class Graph {
 
     /**
      * Create an execution context for performing inference requests. This indirection separates the
-     * "graph loading" phase (potentially expensive) from the "graph execution" phase. 
+     * "graph loading" phase (potentially expensive) from the "graph execution" phase.
      * @returns an `ExecutionContext`
      */
     initExecutionContext(): ExecutionContext {
@@ -152,7 +152,7 @@ export class Tensor {
 
     /**
      * Convert data to an `ArrayBuffer` for using data views.
-     * @returns an ArrayBuffer with a copy of the bytes in `this.data` 
+     * @returns an ArrayBuffer with a copy of the bytes in `this.data`
      */
     toArrayBuffer(): ArrayBuffer {
         const buffer = new ArrayBuffer(this.data.length);
@@ -161,6 +161,48 @@ export class Tensor {
             store<u8>(changetype<u32>(buffer) + i, this.data[i])
         }
         return buffer;
+    }
+}
+
+/**
+ * Convenience function that converts an image to a tensor
+ *
+ * @param path Path to the image
+ * @param width Width of the tensor
+ * @param height Height of the tensor
+ * @param precision precision of the tensor
+ * @returns u8[] containing the tensor if successful. Empty array if it fails
+ */
+export function convert_image(path: string, width: u32, height: u32, precision: TensorType): u8[] {
+
+    let bytes = 1;
+
+    if (precision === TensorType.f32 || precision === TensorType.i32) {
+        bytes = 4;
+    } else if (precision === TensorType.f16) {
+        bytes = 2;
+    }
+
+    // The 3 is because we have Red, Green, and Blue in each pixel.
+    let out_buffer = new Array<u8>(width * height * 3 * bytes).fill(0);
+    let bytesWritten: i32 = changetype<u32>(memory.data(16));
+    let pathTrim = path.trim();
+    let ut8: u8[] = [];
+
+    // Convert path to u8[]
+    for (let i = 0; i < pathTrim.length; i++) {
+        ut8[i] = pathTrim.charCodeAt(i) as u8;
+    }
+
+    let u8ptr = getArrayPtr(ut8);
+    wasi_ephemeral_nn.convert_image(u8ptr, ut8.length, width, height, precision,
+                                    getArrayPtr(out_buffer), out_buffer.length,
+                                    bytesWritten);
+
+    if (load<i32>(bytesWritten) > 0) {
+        return out_buffer;
+    } else {
+        return [];
     }
 }
 

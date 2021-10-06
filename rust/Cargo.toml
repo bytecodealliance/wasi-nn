@@ -11,6 +11,11 @@ readme = "README.md"
 edition = "2018"
 publish = true
 
+[features]
+default = ["image2tensor"]
+i2t_host = []
+
 [dependencies]
+image2tensor = { version = "0.1.1", optional = true }
 
 [workspace]

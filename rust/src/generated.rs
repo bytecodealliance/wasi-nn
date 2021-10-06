@@ -4,6 +4,9 @@
 
 use core::mem::MaybeUninit;
 
+#[cfg(not(feature = "i2t_host"))]
+use image2tensor;
+
 pub use crate::error::Error;
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 pub type BufferSize = u32;
@@ -152,6 +155,72 @@ pub unsafe fn compute(context: GraphExecutionContext) -> Result<()> {
     }
 }
 
+// Use the host provided convert_image
+#[cfg(feature = "i2t_host")]
+pub unsafe fn convert_image(
+    path: String,
+    width: u32,
+    height: u32,
+    precision: TensorType
+) -> Vec<u8> {
+    let bytes = match precision {
+        TENSOR_TYPE_F32 | TENSOR_TYPE_I32 => 4,
+        TENSOR_TYPE_F16 => 2,
+        _ => 1
+    };
+
+    // Calculate the bufsize, the 3 is for RGB values
+    let bufsize: usize = width as usize * height as usize * 3 * bytes;
+    let mut bytes_written = MaybeUninit::uninit();
+    let path_ptr: *const u8 = path.as_ptr();
+    let mut out_buffer:Vec<u8> = vec![0; bufsize];
+    // Need a pointer to a [u8]
+    let out_arr: &mut[u8] = out_buffer.as_mut_slice();
+    let out_arr_ptr: *const u8 = out_arr.as_ptr();
+    let _rc = wasi_ephemeral_nn::convert_image(path_ptr, path.len(), width, height, precision, out_arr_ptr, out_arr.len(), bytes_written.as_mut_ptr());
+
+    if bytes_written.assume_init() > 0 {
+        return out_buffer;
+    } else {
+        return vec![0;0];
+    }
+}
+
+// Use the image2tensor crate provided convert_image
+#[cfg(not(feature = "i2t_host"))]
+pub unsafe fn convert_image(
+    path: String,
+    width: u32,
+    height: u32,
+    precision: TensorType
+) -> Vec<u8> {
+    let bytes = match precision {
+        TENSOR_TYPE_F32 | TENSOR_TYPE_I32 => 4,
+        TENSOR_TYPE_F16 => 2,
+        _ => 1
+    };
+
+    let i2t_prec = match precision {
+        TENSOR_TYPE_F16 => image2tensor::TensorType::F16,
+        TENSOR_TYPE_F32 => image2tensor::TensorType::F32,
+        TENSOR_TYPE_U8 => image2tensor::TensorType::U8,
+        TENSOR_TYPE_I32 => image2tensor::TensorType::I32,
+        _ => image2tensor::TensorType::F32
+    };
+
+    // Calculate the bufsize, the 3 is for RGB values
+    let bufsize: usize = width as usize * height as usize * 3 * bytes;
+    let mut out_buffer:Vec<u8> = vec![0; bufsize];
+    let out_arr: &mut[u8] = out_buffer.as_mut_slice();
+    let bytes_written = image2tensor::convert_image(path, width, height, i2t_prec, out_arr);
+
+    if bytes_written > 0 {
+        return out_buffer;
+    } else {
+        return vec![0;0];
+    }
+}
+
 #[allow(improper_ctypes)]
 pub mod wasi_ephemeral_nn {
     use super::*;
@@ -196,5 +265,17 @@ pub mod wasi_ephemeral_nn {
         ///
         /// This should return an $nn_errno (TODO define) if the inputs are not all defined.
         pub fn compute(context: GraphExecutionContext) -> NnErrno;
+
+        #[cfg(feature = "i2t_host")]
+        pub fn convert_image(
+            path: *const u8,
+            path_len: usize,
+            width: u32,
+            height: u32,
+            precision: TensorType,
+            out_buffer: *const u8,
+            out_len: usize,
+            bytes_written: *mut i32,
+        ) -> NnErrno;
     }
 }

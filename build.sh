@@ -6,7 +6,7 @@ if [ ! -d "/opt/intel/openvino" ]; then
 
 else
     if [ -z $1 ]; then
-        echo "Please specify as or rust to build"
+        echo "Please specify as, as_i2t, rust, or rust_i2t to build"
     else
         BUILD_TYPE=$1
         WASI_NN_DIR=$(dirname "$0" | xargs dirname)
@@ -20,6 +20,12 @@ else
                 npm run demo
             ;;
 
+            as_i2t_host)
+            pushd $WASI_NN_DIR/assemblyscript
+                npm install
+                npm run demo_i2t_host
+            ;;
+
             rust)
                 echo "The first argument: $1"
                 FIXTURE=https://github.com/intel/openvino-rs/raw/main/crates/openvino/tests/fixtures/mobilenet
@@ -30,6 +36,23 @@ else
                 cp -rn images $RUST_BUILD_DIR
                 pushd examples/classification-example
                 cargo build --release --target=wasm32-wasi
+                cp target/wasm32-wasi/release/wasi-nn-example.wasm $RUST_BUILD_DIR
+                pushd build
+                wget --no-clobber --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.bin
+                wget --no-clobber --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.xml
+                wasmtime run --mapdir fixture::$RUST_BUILD_DIR wasi-nn-example.wasm --wasi-modules=experimental-wasi-nn
+            ;;
+
+            rust_i2t_host)
+                echo "The first argument: $1"
+                FIXTURE=https://github.com/intel/openvino-rs/raw/main/crates/openvino/tests/fixtures/mobilenet
+                pushd $WASI_NN_DIR/rust/
+                cargo build --release --target=wasm32-wasi --features i2t_host
+                mkdir -p $WASI_NN_DIR/rust/examples/classification-example/build
+                RUST_BUILD_DIR=$(realpath $WASI_NN_DIR/rust/examples/classification-example/build/)
+                cp -rn images $RUST_BUILD_DIR
+                pushd examples/classification-example
+                cargo build --release --target=wasm32-wasi --features i2t_host
                 cp target/wasm32-wasi/release/wasi-nn-example.wasm $RUST_BUILD_DIR
                 pushd build
                 wget --no-clobber --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.bin

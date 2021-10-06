@@ -6,10 +6,12 @@ readme = "README.md"
 edition = "2018"
 publish = false
 
-[dependencies]
-image = { version = "0.23.14", default-features = false, features = ["gif", "jpeg", "ico", "png", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt", "dds", "farbfeld"]  }
-wasi-nn = { path = "../../", version = "0.1.0" }
+[features]
+default = ["wasi-nn"]
+i2t_host = ["wasi-nn/i2t_host"]
 
+[dependencies]
+wasi-nn = { path = "../../", version = "0.1.0", optional = true}
 # This crate is built with the wasm32-wasi target, so it's separate
 # from the main Wasmtime build, so use this directive to exclude it
 # from the parent directory's workspace.
