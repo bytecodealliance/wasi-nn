@@ -70,7 +70,7 @@ function sortResults(output: wasi_nn.Tensor, topK: u32): Result[] {
     for (let i = 0; i < probabilities.length; i++) {
         results[i] = new Result(i, probabilities[i]);
     }
-    results.sort((a: Result, b: Result) => a.probability > b.probability ? -1 : 1);
+    results.sort((a, b) => a.probability > b.probability ? -1 : 1);
     return results.slice(0, topK);
 }
 

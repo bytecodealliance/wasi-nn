@@ -36,7 +36,7 @@ export class Graph {
             graphBuilder.push(builder[i].length);
         }
 
-        let graphPointer: u32 = changetype<u32>(memory.data(4));
+        let graphPointer = memory.data(4) as u32;
         let resultCode = wasi_ephemeral_nn.load(getArrayPtr(graphBuilder), builder.length, encoding, target, graphPointer);
         if (resultCode != 0) {
             throw new WasiNnError("Unable to load graph", resultCode);
@@ -50,7 +50,7 @@ export class Graph {
      * @returns an `ExecutionContext`
      */
     initExecutionContext(): ExecutionContext {
-        let executionContextPointer: u32 = changetype<u32>(memory.data(4));
+        let executionContextPointer = memory.data(4) as u32;
         let resultCode = wasi_ephemeral_nn.init_execution_context(load<u32>(this.pointer), executionContextPointer);
         if (resultCode != 0) {
             throw new WasiNnError("Unable to initialize an execution context", resultCode);
@@ -116,9 +116,9 @@ export class ExecutionContext {
      */
     getOutput(index: u32, outputBuffer: Array<u8>): Tensor {
         let maxBufferLength = outputBuffer.length;
-        let bytesWritten: u32 = changetype<u32>(memory.data(4));
+        let bytesWritten = memory.data(4) as u32;
         let resultCode = wasi_ephemeral_nn.get_output(load<u32>(this.pointer), index,
-            changetype<u32>(getArrayPtr(outputBuffer)),
+            getArrayPtr(outputBuffer),
             maxBufferLength,
             bytesWritten);
         if (resultCode != 0) {
@@ -155,12 +155,7 @@ export class Tensor {
      * @returns an ArrayBuffer with a copy of the bytes in `this.data`
      */
     toArrayBuffer(): ArrayBuffer {
-        const buffer = new ArrayBuffer(this.data.length);
-        // TODO figure out why we cannot use `forEach` here.
-        for (let i = 0; i < this.data.length; i++) {
-            store<u8>(changetype<u32>(buffer) + i, this.data[i])
-        }
-        return buffer;
+        return this.data.buffer;
     }
 }
 
@@ -174,30 +169,30 @@ export class Tensor {
  * @returns u8[] containing the tensor if successful. Empty array if it fails
  */
 export function convert_image(path: string, width: u32, height: u32, precision: TensorType): u8[] {
-
-    let bytes = 1;
-
-    if (precision === TensorType.f32 || precision === TensorType.i32) {
-        bytes = 4;
-    } else if (precision === TensorType.f16) {
-        bytes = 2;
+    let bytes: u32;
+    switch (precision) {
+       case TensorType.f16:
+         bytes = 2;
+         break;
+       case TensorType.i32:
+       case TensorType.f32:
+         bytes = 4;
+         break;
+       default:
+         bytes = 1;
+         break;
     }
 
     // The 3 is because we have Red, Green, and Blue in each pixel.
-    let out_buffer = new Array<u8>(width * height * 3 * bytes).fill(0);
-    let bytesWritten: i32 = changetype<u32>(memory.data(16));
+    let out_buffer = new Array<u8>(width * height * 3 * bytes);
+    let bytesWritten = memory.data(16) as u32;
     let pathTrim = path.trim();
-    let ut8: u8[] = [];
-
-    // Convert path to u8[]
-    for (let i = 0; i < pathTrim.length; i++) {
-        ut8[i] = pathTrim.charCodeAt(i) as u8;
-    }
-
-    let u8ptr = getArrayPtr(ut8);
-    wasi_ephemeral_nn.convert_image(u8ptr, ut8.length, width, height, precision,
-                                    getArrayPtr(out_buffer), out_buffer.length,
-                                    bytesWritten);
+    let utf8buf = String.UTF8.encode(pathTrim);
+    let utf8ptr = changetype<u32>(utf8buf);
+    
+    wasi_ephemeral_nn.convert_image(utf8ptr, utf8buf.byteLength, width, height,
+                                    precision, getArrayPtr(out_buffer),
+                                    out_buffer.length, bytesWritten);
 
     if (load<i32>(bytesWritten) > 0) {
         return out_buffer;
@@ -237,5 +232,5 @@ function getArrayPtr<T>(data: T[]): u32 {
     // Use the documented `dataStart` field; see
     // https://www.assemblyscript.org/memory.html#arraybufferview-layout. We cast to a `u32` to
     // match the wasi-nn expected types.
-    return changetype<u32>(data.dataStart);
+    return data.dataStart as u32;
 }
