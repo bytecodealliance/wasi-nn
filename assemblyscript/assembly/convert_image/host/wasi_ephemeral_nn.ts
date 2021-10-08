@@ -10,7 +10,7 @@
  * https://github.com/WebAssembly/WASI/pull/377). Looking just at the first function, we know that
  * we need to expose a raw interface that looks something like:
  *
- *   (import "wasi_ephemeral_nn" "load" (func (param I32 I32 I32 I32 I32) (result I32)))
+ *   (import "wasi_ephemeral_nn" "load" (func (param U32 U32 U32 U32 U32) (result U32)))
  *
  * It is interesting to note that the equivalent raw Rust interface (see
  * https://github.com/bytecodealliance/wasmtime/blob/main/crates/wasi-nn/examples/wasi-nn-rust-bindings/src/generated.rs#L163-L169),
@@ -23,9 +23,9 @@
  * here with the `out_` prefix.
  */
 
-export declare function load(builder_ptr: i32, builder_len: i32, encoding: i32, target: i32, out_graph: i32): i32;
-export declare function init_execution_context(graph: i32, context: i32): i32;
-export declare function set_input(context: i32, index: i32, tensor: i32): i32;
-export declare function compute(context: i32): i32;
-export declare function get_output(context: i32, index: i32, out_buffer: i32, buffer_max_size: i32, out_bytes_written: i32): i32;
-export declare function convert_image(path_ptr: i32, path_len: i32, width: i32, height: i32, precision: i32, out_buffer: i32, out_buffer_len: i32, out_bytes_written: i32): i32;
+export declare function load(builder_ptr: u32, builder_len: u32, encoding: u32, target: u32, out_graph: u32): u32;
+export declare function init_execution_context(graph: u32, context: u32): u32;
+export declare function set_input(context: u32, index: u32, tensor: u32): u32;
+export declare function compute(context: u32): u32;
+export declare function get_output(context: u32, index: u32, out_buffer: u32, buffer_max_size: u32, out_bytes_written: i32): u32;
+export declare function convert_image(path_ptr: u32, path_len: u32, width: u32, height: u32, precision: u32, out_buffer: u32, out_buffer_len: u32, out_bytes_written: i32): u32;
