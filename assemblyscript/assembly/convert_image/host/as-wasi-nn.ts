@@ -29,11 +29,13 @@ export class Graph {
      * @returns an initialized `Graph`
      */
     static load(builder: u8[][], encoding: GraphEncoding, target: ExecutionTarget): Graph {
-        let graphBuilder: u32[] = [];
+        let len = builder.length;
+        let graphBuilder = new Array<u32>(len * 2);
 
-        for (let i = 0; i < builder.length; i++) {
-            graphBuilder.push(getArrayPtr(builder[i]));
-            graphBuilder.push(builder[i].length);
+        for (let i = 0; i < len; i++) {
+            let arr = builder[i];
+            graphBuilder[i * 2 + 0] = getArrayPtr(arr);
+            graphBuilder[i * 2 + 1] = arr.length;
         }
 
         let graphPointer = memory.data(4) as u32;
