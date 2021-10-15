@@ -1,7 +1,5 @@
 import { FileSystem, Console, Process } from "as-wasi";
-// import { Graph, Tensor, TensorType, GraphEncoding, ExecutionTarget, convert_image } from "../assembly/as-wasi-nn";
 import * as wasi_nn from "../assembly/as-wasi-nn";
-
 import { IMAGENET_CLASSES } from "../assembly/imagenet_classes";
 
 /**
@@ -16,7 +14,7 @@ export function main(): i32 {
     const context = graph.initExecutionContext();
 
     for (let i = 0; i < 5; i++) {
-        let imgData = wasi_nn.convert_image("images/" + i.toString() + ".jpg", 224, 224, wasi_nn.TensorType.f32);
+        let imgData = wasi_nn.convert_image("build/images/" + i.toString() + ".jpg", 224, 224, wasi_nn.TensorType.f32);
         if (imgData.length > 0) {
             const input = new wasi_nn.Tensor([1, 3, 224, 224], wasi_nn.TensorType.f32, imgData);
             context.setInput(0, input);

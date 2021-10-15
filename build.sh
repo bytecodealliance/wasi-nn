@@ -33,13 +33,28 @@ else
                 cargo build --release --target=wasm32-wasi
                 mkdir -p $WASI_NN_DIR/rust/examples/classification-example/build
                 RUST_BUILD_DIR=$(realpath $WASI_NN_DIR/rust/examples/classification-example/build/)
-                cp -rn images $RUST_BUILD_DIR
                 pushd examples/classification-example
                 cargo build --release --target=wasm32-wasi
                 cp target/wasm32-wasi/release/wasi-nn-example.wasm $RUST_BUILD_DIR
                 pushd build
-                wget --no-clobber --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.bin
-                wget --no-clobber --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.xml
+                wget -c --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.bin
+                wget -c --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.xml
+                mkdir -p images
+                if [ ! -f $RUST_BUILD_DIR/images/0.jpg ]; then
+                    wget http://images.cocodataset.org/test-stuff2017/000000003188.jpg -O images/0.jpg
+                fi
+                if [ ! -f $RUST_BUILD_DIR/images/1.jpg ]; then
+                    wget http://images.cocodataset.org/test-stuff2017/000000001371.jpg -O images/1.jpg
+                fi
+                if [ ! -f $RUST_BUILD_DIR/images/2.jpg ]; then
+                    wget http://images.cocodataset.org/test-stuff2017/000000002288.jpg -O images/2.jpg
+                fi
+                if [ ! -f $RUST_BUILD_DIR/images/3.jpg ]; then
+                    wget http://images.cocodataset.org/test-stuff2017/000000002365.jpg -O images/3.jpg
+                fi
+                if [ ! -f $RUST_BUILD_DIR/images/4.jpg ]; then
+                    wget http://images.cocodataset.org/test-stuff2017/000000001643.jpg -O images/4.jpg
+                fi
                 wasmtime run --mapdir fixture::$RUST_BUILD_DIR wasi-nn-example.wasm --wasi-modules=experimental-wasi-nn
             ;;
 
@@ -50,13 +65,28 @@ else
                 cargo build --release --target=wasm32-wasi --features i2t_host
                 mkdir -p $WASI_NN_DIR/rust/examples/classification-example/build
                 RUST_BUILD_DIR=$(realpath $WASI_NN_DIR/rust/examples/classification-example/build/)
-                cp -rn images $RUST_BUILD_DIR
                 pushd examples/classification-example
                 cargo build --release --target=wasm32-wasi --features i2t_host
                 cp target/wasm32-wasi/release/wasi-nn-example.wasm $RUST_BUILD_DIR
                 pushd build
-                wget --no-clobber --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.bin
-                wget --no-clobber --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.xml
+                wget -c --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.bin
+                wget -c --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.xml
+                mkdir -p images
+                if [ ! -f $RUST_BUILD_DIR/images/0.jpg ]; then
+                    wget http://images.cocodataset.org/test-stuff2017/000000003188.jpg -O images/0.jpg
+                fi
+                if [ ! -f $RUST_BUILD_DIR/images/1.jpg ]; then
+                    wget http://images.cocodataset.org/test-stuff2017/000000001371.jpg -O images/1.jpg
+                fi
+                if [ ! -f $RUST_BUILD_DIR/images/2.jpg ]; then
+                    wget http://images.cocodataset.org/test-stuff2017/000000002288.jpg -O images/2.jpg
+                fi
+                if [ ! -f $RUST_BUILD_DIR/images/3.jpg ]; then
+                    wget http://images.cocodataset.org/test-stuff2017/000000002365.jpg -O images/3.jpg
+                fi
+                if [ ! -f $RUST_BUILD_DIR/images/4.jpg ]; then
+                    wget http://images.cocodataset.org/test-stuff2017/000000001643.jpg -O images/4.jpg
+                fi
                 wasmtime run --mapdir fixture::$RUST_BUILD_DIR wasi-nn-example.wasm --wasi-modules=experimental-wasi-nn
             ;;
             *)
