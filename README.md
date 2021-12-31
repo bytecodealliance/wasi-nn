@@ -49,11 +49,15 @@ WebAssembly, and run it in a WebAssembly runtime that supports the [wasi-nn] pro
 ### Examples
 
 This repository includes examples of using these bindings. See the [Rust example] and
-[AssemblyScript example] to walk through an end-to-end image classification using an AlexNet model. Currently the example uses OpenVino as the backend. If you are running Ubuntu, you can simply run the script to install the supported version`.github/actions/install-openvino/install.sh`. Otherwise you'll need to visit the [Installation Guides] and follow the instructions for your OS. The version of OpenVino currently supported is openvino_2020.4.287.
+[AssemblyScript example] to walk through an end-to-end image classification using an MobileNet model. The examples use OpenVino or TensorFlow as the backend. If you are running Ubuntu, you can simply run the script to install the supported version`.github/actions/install-openvino/install.sh`. Otherwise you'll need to visit the [Installation Guides] and follow the instructions for your OS. The version of OpenVino currently supported is openvino_2020.4.287. For TensorFlow, visit [Install TensorFlow for C](https://www.tensorflow.org/install/lang_c)
 
 Once you have OpenVino installed, run them with:
- - `./build.sh rust` runs the [Rust example]
- - `./build.sh as` runs the [AssemblyScript example]
+ - `./build.sh rust openvino` runs the [Rust example] with OpenVino
+ - `./build.sh rust tensorflow` runs the [Rust example] with TensorFlow
+ - `./build.sh as openvino` runs the [AssemblyScript example] with OpenVino
+ - `./build.sh as tensorflow` runs the [AssemblyScript example] with Tensorflow
+
+If you want to see performance numbers, you can add `perf` to the end. For example, `./build.sh rust openvino perf`.  __NOTE__: this currently only works for the Rust example.
 
 [Rust example]: rust/examples/classification-example
 [AssemblyScript example]: assemblyscript/examples/object-classification.ts
