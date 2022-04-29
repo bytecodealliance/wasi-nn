@@ -30,7 +30,8 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
     #[cfg(feature = "performance")]
     let init_time = Instant::now();
     #[cfg(feature = "performance")]
-    let mut id_secs: Vec<Duration> = Vec::new();
+    // let mut id_secs: Vec<Duration> = Vec::new();
+    let mut id_secs: Duration;
 
     let gba: Vec<Vec<u8>> = create_gba(backend);
 
@@ -51,7 +52,7 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
 
     println!("Created wasi-nn execution context with ID: {}", context);
     #[cfg(feature = "performance")]
-    printtime("Initiating the backend", init_secs.as_millis());
+    printtime("Initiating the backend", init_secs.as_micros());
 
     // Load a tensor that precisely matches the graph input tensor (see
     // `fixture/frozen_inference_graph.xml`).
@@ -60,8 +61,7 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
 
         let tensor_data: Vec<u8> = image_to_tensor(filename, 224, 224, backend);
 
-        #[cfg(feature = "performance")]
-        let id_time = Instant::now();
+
         let tensor = wasi_nn::Tensor {
                         dimensions: dimensions,
                         r#type: wasi_nn::TENSOR_TYPE_F32,
@@ -72,38 +72,56 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
             wasi_nn::set_input(context, 0, tensor).unwrap();
         }
 
+        #[cfg(feature = "performance")]
+        let id_time = Instant::now();
+
+        for j in 0..1000 {
         // Execute the inference.
-        unsafe {
-            wasi_nn::compute(context).unwrap();
-        }
+            unsafe {
+                wasi_nn::compute(context).unwrap();
+            }
+            // #[cfg(feature = "performance")]
+            id_secs = id_time.elapsed();
 
-        println!("Executed graph inference");
+            // id_secs.push(id_time.elapsed());
 
-        unsafe {
-            wasi_nn::get_output(
-                context,
-                0,
-                &mut output_buffer[..] as *mut [f32] as *mut u8,
-                (output_buffer.len() * 4).try_into().unwrap(),
-            )
-            .unwrap();
-        }
+            #[cfg(feature = "performance")]
+            if j == 1 {
+                // printtime("First run took", id_secs.as_millis());
+                printtime("First run took", id_secs.as_micros());
+            }
+            // println!("Executed graph inference");
 
-        #[cfg(feature = "performance")]
-        id_secs.push(id_time.elapsed());
-
-        let results = sort_results(&output_buffer, backend);
-        println!(
-            "Found results, sorted top 5: {:?}",
-            &results[..5]
-        );
+            if j == 999 {
+                // printtime("1000 runs took", id_secs.as_millis());
+                printtime("1000 runs took", id_secs.as_micros());
 
 
-        #[cfg(feature = "performance")]
-        printtime("Result", id_secs[i].as_millis());
+                unsafe {
+                    wasi_nn::get_output(
+                        context,
+                        0,
+                        &mut output_buffer[..] as *mut [f32] as *mut u8,
+                        (output_buffer.len() * 4).try_into().unwrap(),
+                    )
+                    .unwrap();
+                }
 
-        for i in 0..5 {
-            println!("{}.) {}", i + 1, imagenet_classes::IMAGENET_CLASSES[results[i].0]);
+
+
+                let results = sort_results(&output_buffer, backend);
+                println!(
+                    "Found results, sorted top 5: {:?}",
+                    &results[..5]
+                );
+
+
+
+
+                for i in 0..5 {
+                    println!("{}.) {}", i + 1, imagenet_classes::IMAGENET_CLASSES[results[i].0]);
+                }
+            }
         }
     }
 }
@@ -212,8 +230,11 @@ fn printtime (msg: &str, dur: u128) {
         print!("-");
     }
 
+    let durstr = dur.to_string();
+    let charnum = durstr.chars().count();
+
     println!("");
-    println!("** {} took {} ms **", msg, dur);
+    println!("** {} took {}.{} ms **", msg, &durstr[0..charnum-3], &durstr[(charnum-3)..charnum]);
 
     for _i in 0..bdrlen {
         print!("-");
