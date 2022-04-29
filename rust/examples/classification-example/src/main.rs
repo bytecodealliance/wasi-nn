@@ -72,29 +72,36 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
             wasi_nn::set_input(context, 0, tensor).unwrap();
         }
 
-        #[cfg(feature = "performance")]
-        let id_time = Instant::now();
-
+        // #[cfg(feature = "performance")]
+        // let id_time = Instant::now();
+        let mut totaltime = 0;
+        let mut firsttime = 0;
         for j in 0..1000 {
+            #[cfg(feature = "performance")]
+            let id_time = Instant::now();
         // Execute the inference.
             unsafe {
                 wasi_nn::compute(context).unwrap();
             }
             // #[cfg(feature = "performance")]
             id_secs = id_time.elapsed();
-
+            totaltime += id_secs.as_micros();
+            // if id_secs.as_micros() < firsttime {
+            //     println!("Latest = {:?} / First {:?}", id_secs.as_micros(), firsttime );
+            // }
             // id_secs.push(id_time.elapsed());
 
             #[cfg(feature = "performance")]
             if j == 1 {
                 // printtime("First run took", id_secs.as_millis());
-                printtime("First run took", id_secs.as_micros());
+                printtime("First run took", totaltime);
+                firsttime = totaltime;
             }
             // println!("Executed graph inference");
 
             if j == 999 {
                 // printtime("1000 runs took", id_secs.as_millis());
-                printtime("1000 runs took", id_secs.as_micros());
+                printtime("1000 runs took", totaltime);
 
 
                 unsafe {
