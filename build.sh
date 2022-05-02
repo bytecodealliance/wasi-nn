@@ -15,8 +15,9 @@ else
         export BACKEND=$BACKEND
 
         if [ -z "$3" ]; then MODEL="mobilenet_v2"; else MODEL=$3; fi
-        if [ -z "$5" ]; then LOOP_SIZE="1"; else LOOP_SIZE=$5; fi
+        if [ -z "$5" ]; then LOOP_SIZE=1; else LOOP_SIZE=$5; fi
         export MODEL=$MODEL
+        export LOOP_SIZE=$LOOP_SIZE
         WASI_NN_DIR=$(dirname "$0" | xargs dirname)
         WASI_NN_DIR=$(realpath $WASI_NN_DIR)
 
@@ -57,9 +58,6 @@ else
                                 echo "Loop size needs to be a number";
                                 exit;
                                 ;;
-                            *)
-                                export LOOP_SIZE=$LOOP_SIZE
-                                ;;
                         esac
                     echo "RUNNING PERFORMANCE CHECKS"
                         cargo build --release --target=wasm32-wasi --features performance
@@ -75,7 +73,14 @@ else
                     openvino)
                         echo "Using OpenVino"
                         source /opt/intel/openvino/bin/setupvars.sh
-                        FIXTURE=https://github.com/intel/openvino-rs/raw/main/crates/openvino/tests/fixtures/mobilenet
+                        RUST_DIR=$(realpath $WASI_NN_DIR/rust/examples/classification-example/)
+                        FIXTURE=https://github.com/intel/openvino-rs/raw/main/crates/openvino/tests/fixtures
+                        wget -O model.bin --no-clobber --directory-prefix=$RUST_DIR/models/mobilenet_v2 $FIXTURE/mobilenet/mobilenet.bin
+                        wget -O model.xml --no-clobber --directory-prefix=$RUST_DIR/models/mobilenet_v2 $FIXTURE/mobilenet/mobilenet.xml
+                        wget -O model.bin --no-clobber --directory-prefix=$RUST_DIR/models/alexnet $FIXTURE/alexnet/alexnet.bin
+                        wget -O model.xml --no-clobber --directory-prefix=$RUST_DIR/models/alexnet $FIXTURE/alexnet/alexnet.xml
+                        wget -O model.bin --no-clobber --directory-prefix=$RUST_DIR/models/inception_v3 $FIXTURE/inception/inception.bin
+                        wget -O model.xml --no-clobber --directory-prefix=$RUST_DIR/models/inception_v3 $FIXTURE/inception/inception.xml
                         cp models/$MODEL/model.bin $RUST_BUILD_DIR
                         cp models/$MODEL/model.xml $RUST_BUILD_DIR
                         cp models/$MODEL/tensor.desc $RUST_BUILD_DIR

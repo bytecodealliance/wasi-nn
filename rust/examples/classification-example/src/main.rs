@@ -12,7 +12,6 @@ pub fn main() {
     let loop_size: u32 = env!("LOOP_SIZE").parse().unwrap();
     let tensor_desc_data = fs::read_to_string("fixture/tensor.desc").unwrap();
     let tensor_desc = TensorDescription::from_str(&tensor_desc_data).unwrap();
-
     match env!("BACKEND") {
         "openvino" => {
             println!("##################################################################\n");
@@ -21,10 +20,11 @@ pub fn main() {
             execute(wasi_nn::GRAPH_ENCODING_OPENVINO, &tensor_desc.dimensions(), vec![0f32; 1001], loop_size);
         },
         "tensorflow" => {
+            let tf_dim = [tensor_desc.dimensions()[0], tensor_desc.dimensions()[2], tensor_desc.dimensions()[3], tensor_desc.dimensions()[1]];
             println!("#####################################################################\n");
             println!("Running benchmark using Tensorflow, {} model, and looping for {} times...\n", env!("MODEL"), loop_size);
             println!("#####################################################################");
-            execute(wasi_nn::GRAPH_ENCODING_TENSORFLOW,&tensor_desc.dimensions(), vec![0f32; 1000], loop_size);
+            execute(wasi_nn::GRAPH_ENCODING_TENSORFLOW, &tf_dim, vec![0f32; 1000], loop_size);
         },
         _ => {
             println!("Unknown backend, exiting...");
@@ -174,6 +174,7 @@ fn sort_results(buffer: &[f32], backend: u8) -> Vec<InferenceResult> {
 
 
 fn image_to_tensor(path: String, height: u32, width: u32, backend: u8) -> Vec<u8> {
+    println!("BJONES h/w = {}/{}", height, width);
     let result: Vec<u8> = match backend {
         wasi_nn::GRAPH_ENCODING_OPENVINO => {
             let pixels = Reader::open(path).unwrap().decode().unwrap();
