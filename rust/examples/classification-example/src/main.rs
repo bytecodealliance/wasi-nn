@@ -1,21 +1,30 @@
 use image::{DynamicImage};
 use image::io::Reader;
-use std::convert::TryInto;
+use std::{convert::TryInto, str::FromStr};
 use std::fs;
 use wasi_nn;
 mod imagenet_classes;
 use std::env;
-#[cfg(feature = "performance")]
+// #[cfg(feature = "performance")]
 use std::time::{Duration, Instant};
 
 pub fn main() {
+    let loop_size: u32 = env!("LOOP_SIZE").parse().unwrap();
+    let tensor_desc_data = fs::read_to_string("fixture/tensor.desc").unwrap();
+    let tensor_desc = TensorDescription::from_str(&tensor_desc_data).unwrap();
 
     match env!("BACKEND") {
         "openvino" => {
-            execute(wasi_nn::GRAPH_ENCODING_OPENVINO, &[1, 3, 224, 224], vec![0f32; 1001]);
+            println!("##################################################################\n");
+            println!("Running benchmark using OpenVINO, {} model, and looping for {} times...\n", env!("MODEL"), loop_size);
+            println!("##################################################################");
+            execute(wasi_nn::GRAPH_ENCODING_OPENVINO, &tensor_desc.dimensions(), vec![0f32; 1001], loop_size);
         },
         "tensorflow" => {
-            execute(wasi_nn::GRAPH_ENCODING_TENSORFLOW,&[1, 224, 224, 3], vec![0f32; 1000]);
+            println!("#####################################################################\n");
+            println!("Running benchmark using Tensorflow, {} model, and looping for {} times...\n", env!("MODEL"), loop_size);
+            println!("#####################################################################");
+            execute(wasi_nn::GRAPH_ENCODING_TENSORFLOW,&tensor_desc.dimensions(), vec![0f32; 1000], loop_size);
         },
         _ => {
             println!("Unknown backend, exiting...");
@@ -24,13 +33,12 @@ pub fn main() {
     }
 }
 
-fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffer: Vec<f32>) {
+fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffer: Vec<f32>, loop_size: u32) {
     println!("** Using the {} backend **", backend);
 
-    #[cfg(feature = "performance")]
+    // #[cfg(feature = "performance")]
     let init_time = Instant::now();
-    #[cfg(feature = "performance")]
-    // let mut id_secs: Vec<Duration> = Vec::new();
+    // #[cfg(feature = "performance")]
     let mut id_secs: Duration;
 
     let gba: Vec<Vec<u8>> = create_gba(backend);
@@ -47,7 +55,7 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
     println!("Loaded graph into wasi-nn with ID: {}", graph);
     let context = unsafe { wasi_nn::init_execution_context(graph).unwrap() };
 
-    #[cfg(feature = "performance")]
+    // #[cfg(feature = "performance")]
     let init_secs = init_time.elapsed();
 
     println!("Created wasi-nn execution context with ID: {}", context);
@@ -55,11 +63,11 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
     printtime("Initiating the backend", init_secs.as_micros());
 
     // Load a tensor that precisely matches the graph input tensor (see
-    // `fixture/frozen_inference_graph.xml`).
     for i in 0..5 {
         let filename: String = format!("{}{}{}", "fixture/images/", i, ".jpg");
 
-        let tensor_data: Vec<u8> = image_to_tensor(filename, 224, 224, backend);
+        // let tensor_data: Vec<u8> = image_to_tensor(filename, 224, 224, backend);
+        let tensor_data: Vec<u8> = image_to_tensor(filename, dimensions[2], dimensions[3], backend);
 
 
         let tensor = wasi_nn::Tensor {
@@ -73,36 +81,27 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
         }
 
         // #[cfg(feature = "performance")]
-        // let id_time = Instant::now();
         let mut totaltime = 0;
-        let mut firsttime = 0;
-        for j in 0..1000 {
-            #[cfg(feature = "performance")]
+        for j in 0..loop_size {
+            // #[cfg(feature = "performance")]
             let id_time = Instant::now();
-        // Execute the inference.
+            // Execute the inference.
             unsafe {
                 wasi_nn::compute(context).unwrap();
             }
-            // #[cfg(feature = "performance")]
             id_secs = id_time.elapsed();
             totaltime += id_secs.as_micros();
-            // if id_secs.as_micros() < firsttime {
-            //     println!("Latest = {:?} / First {:?}", id_secs.as_micros(), firsttime );
-            // }
-            // id_secs.push(id_time.elapsed());
 
             #[cfg(feature = "performance")]
             if j == 1 {
-                // printtime("First run took", id_secs.as_millis());
                 printtime("First run took", totaltime);
-                firsttime = totaltime;
             }
-            // println!("Executed graph inference");
 
-            if j == 999 {
-                // printtime("1000 runs took", id_secs.as_millis());
-                printtime("1000 runs took", totaltime);
-
+            if j == loop_size - 1 {
+                #[cfg(feature = "performance")]
+                let msg = format!("{}{}", loop_size, " runs took");
+                #[cfg(feature = "performance")]
+                printtime(&msg,  totaltime);
 
                 unsafe {
                     wasi_nn::get_output(
@@ -114,15 +113,11 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
                     .unwrap();
                 }
 
-
-
                 let results = sort_results(&output_buffer, backend);
                 println!(
                     "Found results, sorted top 5: {:?}",
                     &results[..5]
                 );
-
-
 
 
                 for i in 0..5 {
@@ -136,9 +131,9 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
 fn create_gba (backend: u8) -> Vec<Vec<u8>> {
     let result: Vec<Vec<u8>> = match backend {
         wasi_nn::GRAPH_ENCODING_OPENVINO => {
-            let xml = fs::read_to_string("fixture/mobilenet.xml").unwrap();
+            let xml = fs::read_to_string("fixture/model.xml").unwrap();
             println!("Read graph XML, first 50 characters: {}", &xml[..50]);
-            let weights = fs::read("fixture/mobilenet.bin").unwrap();
+            let weights = fs::read("fixture/model.bin").unwrap();
             println!("Read graph weights, size in bytes: {}", weights.len());
 
             Vec::from([xml.into_bytes(), weights])
@@ -247,4 +242,43 @@ fn printtime (msg: &str, dur: u128) {
         print!("-");
     }
     println!("");
+}
+
+/// This structure makes it possible to use runtime-defined tensor dimensions by reading the
+/// tensor description from a string, e.g. `TensorDescription::from_str("u8x1x3x300x300")`.
+struct TensorDescription(wasi_nn::TensorType, Vec<u32>);
+
+impl TensorDescription {
+    pub fn precision(&self) -> wasi_nn::TensorType {
+        self.0
+    }
+    pub fn dimensions<'a>(&'a self) -> &'a [u32] {
+        &self.1
+    }
+}
+
+impl FromStr for TensorDescription {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let parts: Vec<&str> = s.trim().split('x').collect();
+        if parts.len() < 2 {
+            return Err(
+                "Not enough parts in description string; should be [precision]x[dimension]*",
+            );
+        }
+        let precision = match parts[0] {
+            "u8" => wasi_nn::TENSOR_TYPE_U8,
+            "i32" => wasi_nn::TENSOR_TYPE_I32,
+            "f16" => wasi_nn::TENSOR_TYPE_F16,
+            "f32" => wasi_nn::TENSOR_TYPE_F32,
+            _ => return Err("Unknown precision string; should be one of [u8|i32|f16|f32]"),
+        };
+        let mut dimensions = Vec::new();
+        for part in parts.into_iter().skip(1) {
+            let dimension = u32::from_str(part).map_err(|_| "Failed to parse dimension as i32")?;
+            dimensions.push(dimension);
+        }
+        Ok(Self(precision, dimensions))
+    }
 }
