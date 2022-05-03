@@ -75,12 +75,23 @@ else
                         source /opt/intel/openvino/bin/setupvars.sh
                         RUST_DIR=$(realpath $WASI_NN_DIR/rust/examples/classification-example/)
                         FIXTURE=https://github.com/intel/openvino-rs/raw/main/crates/openvino/tests/fixtures
-                        wget -O model.bin --no-clobber --directory-prefix=$RUST_DIR/models/mobilenet_v2 $FIXTURE/mobilenet/mobilenet.bin
-                        wget -O model.xml --no-clobber --directory-prefix=$RUST_DIR/models/mobilenet_v2 $FIXTURE/mobilenet/mobilenet.xml
-                        wget -O model.bin --no-clobber --directory-prefix=$RUST_DIR/models/alexnet $FIXTURE/alexnet/alexnet.bin
-                        wget -O model.xml --no-clobber --directory-prefix=$RUST_DIR/models/alexnet $FIXTURE/alexnet/alexnet.xml
-                        wget -O model.bin --no-clobber --directory-prefix=$RUST_DIR/models/inception_v3 $FIXTURE/inception/inception.bin
-                        wget -O model.xml --no-clobber --directory-prefix=$RUST_DIR/models/inception_v3 $FIXTURE/inception/inception.xml
+
+                        if [ ! -f "models/mobilenet_v2/model.bin" ]
+                        then
+                            wget -O models/mobilenet_v2/model.bin --no-clobber $FIXTURE/mobilenet/mobilenet.bin
+                            wget -O models/mobilenet_v2/model.xml --no-clobber $FIXTURE/mobilenet/mobilenet.xml
+                        fi
+                        if [ ! -f "models/alexnet/model.bin" ]
+                        then
+                            wget -O models/alexnet/model.bin --no-clobber $FIXTURE/alexnet/alexnet.bin
+                            wget -O models/alexnet/model.xml --no-clobber $FIXTURE/alexnet/alexnet.xml
+                        fi
+                        if [ ! -f "models/inception_v3/model.bin" ]
+                        then
+                            wget -O models/inception_v3/model.bin --no-clobber $FIXTURE/inception/inception.bin
+                            wget -O models/inception_v3/model.xml --no-clobber $FIXTURE/inception/inception.xml
+                        fi
+
                         cp models/$MODEL/model.bin $RUST_BUILD_DIR
                         cp models/$MODEL/model.xml $RUST_BUILD_DIR
                         cp models/$MODEL/tensor.desc $RUST_BUILD_DIR

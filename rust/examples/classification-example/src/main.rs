@@ -66,7 +66,6 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
     for i in 0..5 {
         let filename: String = format!("{}{}{}", "fixture/images/", i, ".jpg");
 
-        // let tensor_data: Vec<u8> = image_to_tensor(filename, 224, 224, backend);
         let tensor_data: Vec<u8> = image_to_tensor(filename, dimensions[2], dimensions[3], backend);
 
 
