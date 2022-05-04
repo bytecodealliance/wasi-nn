@@ -81,11 +81,6 @@ else
                             wget -O models/mobilenet_v2/model.bin --no-clobber $FIXTURE/mobilenet/mobilenet.bin
                             wget -O models/mobilenet_v2/model.xml --no-clobber $FIXTURE/mobilenet/mobilenet.xml
                         fi
-                        if [ ! -f "models/alexnet/model.bin" ]
-                        then
-                            wget -O models/alexnet/model.bin --no-clobber $FIXTURE/alexnet/alexnet.bin
-                            wget -O models/alexnet/model.xml --no-clobber $FIXTURE/alexnet/alexnet.xml
-                        fi
                         if [ ! -f "models/inception_v3/model.bin" ]
                         then
                             wget -O models/inception_v3/model.bin --no-clobber $FIXTURE/inception/inception.bin
