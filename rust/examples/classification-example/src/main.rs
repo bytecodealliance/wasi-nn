@@ -6,6 +6,8 @@ use wasi_nn;
 mod imagenet_classes;
 use std::env;
 use std::time::{Duration, Instant};
+use floating_duration::{TimeAsFloat, TimeFormat};
+use statistical::{mean, standard_deviation};
 
 pub fn main() {
     let loop_size: u32 = env!("LOOP_SIZE").parse().unwrap();
@@ -27,12 +29,9 @@ pub fn main() {
 
 fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffer: Vec<f32>, loop_size: u32) {
     println!("** Using the {} backend **", backend);
-
-    // #[cfg(feature = "performance")]
     let init_time = Instant::now();
-    // #[cfg(feature = "performance")]
     let mut id_secs: Duration;
-
+    let mut all_results: Vec<f64> = vec![];
     let gba: Vec<Vec<u8>> = create_gba(backend);
 
     let graph = unsafe {
@@ -46,13 +45,9 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
 
     println!("Loaded graph into wasi-nn with ID: {}", graph);
     let context = unsafe { wasi_nn::init_execution_context(graph).unwrap() };
-
-    // #[cfg(feature = "performance")]
     let init_secs = init_time.elapsed();
-
     println!("Created wasi-nn execution context with ID: {}", context);
-    #[cfg(feature = "performance")]
-    printtime("Initiating the backend", init_secs.as_micros());
+    println!("Initiating the backend took {}ms", init_secs.as_fractional_millis());
 
     // Load a tensor that precisely matches the graph input tensor (see
     for i in 0..5 {
@@ -71,29 +66,21 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
             wasi_nn::set_input(context, 0, tensor).unwrap();
         }
 
-        // #[cfg(feature = "performance")]
-        let mut totaltime = 0;
+        let mut totaltime: f64 = 0.0;
         for j in 0..loop_size {
-            // #[cfg(feature = "performance")]
             let id_time = Instant::now();
             // Execute the inference.
             unsafe {
                 wasi_nn::compute(context).unwrap();
             }
             id_secs = id_time.elapsed();
-            totaltime += id_secs.as_micros();
-
-            #[cfg(feature = "performance")]
-            if j == 1 {
-                printtime("First run took", totaltime);
-            }
+            totaltime += id_secs.as_fractional_millis();
+            all_results.push(id_secs.as_fractional_millis());
 
             if j == loop_size - 1 {
-                #[cfg(feature = "performance")]
-                let msg = format!("{}{}", loop_size, " runs took");
-                #[cfg(feature = "performance")]
-                printtime(&msg,  totaltime);
-
+                println!("############################################################");
+                println!("Image index {} results", i);
+                println!("------------------------------------------------------------");
                 unsafe {
                     wasi_nn::get_output(
                         context,
@@ -105,15 +92,30 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
                 }
 
                 let results = sort_results(&output_buffer, backend);
-                println!(
-                    "Found results, sorted top 5: {:?}",
-                    &results[..5]
-                );
-
 
                 for i in 0..5 {
-                    println!("{}.) {}", i + 1, imagenet_classes::IMAGENET_CLASSES[results[i].0]);
+                    println!("{}.) {} = ({:?})", i + 1, imagenet_classes::IMAGENET_CLASSES[results[i].0], results[i]);
                 }
+
+                println!("------------------------------------------------------------");
+                if all_results.len() > 5 {
+                    println!(
+                            "** First 5 inference times **\n {:?}",
+                            &all_results[..5]
+                        );
+                }
+                else {
+                    println!("** Inference times **\n{:?}", all_results);
+                }
+
+                println!("\n** Performance results **");
+                println!("{} runs took {}ms total",loop_size, totaltime);
+                let res_mean = mean(&all_results);
+                let res_dev = standard_deviation(&all_results, Some(res_mean));
+                println!("AVG = {:?}", res_mean);
+                println!("STD_DEV = {:?}", res_dev);
+                println!("############################################################");
+                all_results.clear();
             }
         }
     }
@@ -194,26 +196,6 @@ fn image_to_tensor(path: String, height: u32, width: u32, backend: u8) -> Vec<u8
 // A wrapper for class ID and match probabilities.
 #[derive(Debug, PartialEq)]
 struct InferenceResult(usize, f32);
-
-#[cfg(feature = "performance")]
-fn printtime (msg: &str, dur: u128) {
-    let bdrlen = (msg.len() + 20) as u16;
-
-    for _i in 0..bdrlen {
-        print!("-");
-    }
-
-    let durstr = dur.to_string();
-    let charnum = durstr.chars().count();
-
-    println!("");
-    println!("** {} took {}.{} ms **", msg, &durstr[0..charnum-3], &durstr[(charnum-3)..charnum]);
-
-    for _i in 0..bdrlen {
-        print!("-");
-    }
-    println!("");
-}
 
 /// This structure makes it possible to use runtime-defined tensor dimensions by reading the
 /// tensor description from a string, e.g. `TensorDescription::from_str("u8x1x3x300x300")`.
