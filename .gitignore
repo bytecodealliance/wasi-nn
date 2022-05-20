@@ -5,4 +5,5 @@ assemblyscript/wasmtime
 rust/examples/classification-example/build
 rust/examples/classification-example/target
 wasmtime
-
+model.bin
+model.xml
