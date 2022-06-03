@@ -7,3 +7,5 @@ rust/examples/classification-example/target
 wasmtime
 model.bin
 model.xml
+*.svg
+*.png

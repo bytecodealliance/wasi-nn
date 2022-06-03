@@ -1,13 +1,18 @@
 import os
+import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 import csv
 
 x = []
 y = []
 
+def moving_avg(y, N=30):
+    return np.convolve(y, np.ones((N,))/N, mode='valid')
+
 # TODO: Allow setting the directory
-for resultfile in os.listdir("RESULTS"):
-    f = os.path.join("RESULTS", resultfile)
+for resultfile in os.listdir("rust/examples/classification-example/build/RESULTS"):
+    f = os.path.join("rust/examples/classification-example/build/RESULTS", resultfile)
 # TODO: Check if its a *_all* file, we don't want to do the summary files.
     if os.path.isfile(f):
         with open(f,'r') as csvfile:
@@ -18,19 +23,23 @@ for resultfile in os.listdir("RESULTS"):
             cpu = equip[0]
             threads = equip[3]
             labels = next(reader)
-            plt.xlabel(labels[0])
-            plt.ylabel(labels[1])
             lines = csv.reader(csvfile, delimiter=',')
             for row in lines:
-                x.append(row[0])
+                x.append(float(row[0]))
                 y.append(float(row[1]))
 
+            plt.xlabel(labels[0])
+            plt.ylabel(labels[1])
+            x=x[0:75]
+            y=y[0:75]
+
             plt.plot(x, y, linestyle = 'solid',
-                marker = 'o',label = cpu + "/" + backend + "/" + model + "/" + threads)
+                marker = 'o',label = cpu + "/" + backend + "/" + model + "/" + threads + " threads")
+
+            plt.xticks(rotation = 45, ha = 'right')
             x.clear()
             y.clear()
 
-plt.title('Inference time for 1000 loops', fontsize = 14)
 plt.legend(bbox_to_anchor=(0.80,-0.15), loc=1)
 plt.tight_layout()
 plt.savefig("linechart.png", format='png', dpi=1000)

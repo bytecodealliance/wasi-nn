@@ -5,7 +5,7 @@ if [ ! -d "/opt/intel/openvino" ]; then
     echo "Please install OpenVino"
 
 else
-    while getopts b:m:l:t:o:c: flag
+    while getopts b:m:l:t:o:c:s:e: flag
     do
         case "${flag}" in
             b) BACKEND=${OPTARG};;
@@ -14,12 +14,11 @@ else
             t) BUILD_TYPE=${OPTARG};;
             o) OUT_DIR=${OPTARG};;
             c) CPU_INFO=${OPTARG};;
-            t) THREADS=${OPTARG}
+            s) CPU_START=${OPTARG};;
+            e) CPU_END=${OPTARG};;
         esac
     done
 
-    totalcpu="$(grep -c processor /proc/cpuinfo)"
-    ((half=totalcpu/2))
     # Default values
     if [ -z "$BACKEND" ]; then BACKEND="openvino"; fi
     if [ -z "$MODEL" ]; then MODEL="mobilenet_v2"; fi
@@ -27,9 +26,27 @@ else
     if [ -z "$BUILD_TYPE" ]; then BUILD_TYPE="rust"; fi
     if [ -z "$OUT_DIR" ]; then OUT_DIR="RESULTS"; fi
     if [ -z "$CPU_INFO" ]; then CPU_INFO="UNKOWN"; fi
-    if [ -z "$THREADS" ]; then THREADS=$half; fi
+    if [ -z "$CPU_START" ] && [ ! -z "$CPU_END" ]
+    then
+        echo "Error: CPU_END defined but CPU_START was not"
+        return;
+    else
+        if [ ! -z "$CPU_START" ]
+        then
+            THREADS=$(($CPU_END - $CPU_START))
 
-    echo "BJONES THREADS! $THREADS"
+            # Account for starting with CPU 0
+            if [ $CPU_START -eq 0 ]; then THREADS=$(($THREADS + 1)); fi
+
+            # OpenVINO will not use more than 1/2 the available threads, so if you specify more it doesn't matter.
+            if [ $THREADS -gt $(("$(grep -c processor /proc/cpuinfo)" / 2 )) ]
+            then
+                THREADS=$(("$(grep -c processor /proc/cpuinfo)" / 2 ))
+            fi
+        else
+            THREADS=$(("$(grep -c processor /proc/cpuinfo)" / 2 ))
+        fi
+    fi
 
     export BACKEND=$BACKEND
     export MODEL=$MODEL
@@ -108,14 +125,19 @@ else
             esac
 
             pushd build
-            wasmtime run --dir . --mapdir fixture::$RUST_BUILD_DIR  wasi-nn-example.wasm --wasi-modules=experimental-wasi-nn
+            if [ ! -z "$CPU_START" ] && [ ! -z "$CPU_END" ]
+            then
+                echo "USING CORES $CPU_START $CPU_END"
+                taskset --cpu-list $CPU_START-$CPU_END wasmtime run --dir . --mapdir fixture::$RUST_BUILD_DIR  wasi-nn-example.wasm --wasi-modules=experimental-wasi-nn
+            else
+                wasmtime run --dir . --mapdir fixture::$RUST_BUILD_DIR  wasi-nn-example.wasm --wasi-modules=experimental-wasi-nn
+            fi
+
             # Save results to the out_dir
-            echo "BJONES making dir $OUT_DIR"
-            mkdir -p $OUT_DIR
-            # cp -a derp.csv "$OUT_DIR/derp-$(date +"%Y-%m-%d-%H%M%S").csv"
+            echo "Making dir $OUT_DIR"
+            mkdir -p "$OUT_DIR/SUMMARY"
             cp testout_all.csv "$OUT_DIR/testout_all-$BACKEND-$MODEL-$(date +"%Y-%m-%d-%H%M%S").csv"
-            cp testout.csv "$OUT_DIR/testout-$BACKEND-$MODEL-$(date +"%Y-%m-%d-%H%M%S").csv"
-            # cp *.csv $OUT_DIR
+            cp testout.csv "$OUT_DIR/SUMMARY/testout-$BACKEND-$MODEL-$(date +"%Y-%m-%d-%H%M%S").csv"
         ;;
         *)
             echo "Unknown build type $BUILD_TYPE"
