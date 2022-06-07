@@ -5,7 +5,7 @@ if [ ! -d "/opt/intel/openvino" ]; then
     echo "Please install OpenVino"
 
 else
-    while getopts b:m:l:t:o:c:s:e: flag
+    while getopts b:m:l:t:o:c:s:e:z:j: flag
     do
         case "${flag}" in
             b) BACKEND=${OPTARG};;
@@ -16,6 +16,8 @@ else
             c) CPU_INFO=${OPTARG};;
             s) CPU_START=${OPTARG};;
             e) CPU_END=${OPTARG};;
+            z) BATCH_SZ=${OPTARG};;
+            j) THREAD_JMP=${OPTARG};;
         esac
     done
 
@@ -26,6 +28,8 @@ else
     if [ -z "$BUILD_TYPE" ]; then BUILD_TYPE="rust"; fi
     if [ -z "$OUT_DIR" ]; then OUT_DIR="RESULTS"; fi
     if [ -z "$CPU_INFO" ]; then CPU_INFO="UNKOWN"; fi
+    if [ -z "$BATCH_SZ" ]; then BATCH_SZ=1; fi
+    if [ -z "$THREAD_JMP" ]; then THREAD_JMP=8; fi
     if [ -z "$CPU_START" ] && [ ! -z "$CPU_END" ]
     then
         echo "Error: CPU_END defined but CPU_START was not"
@@ -55,6 +59,7 @@ else
     export OUT_DIR=$OUT_DIR
     export CPU_INFO=$CPU_INFO
     export THREADS=$THREADS
+    export CPU_END=$CPU_END
 
     WASI_NN_DIR=$(dirname "$0" | xargs dirname)
     WASI_NN_DIR=$(realpath $WASI_NN_DIR)
@@ -125,19 +130,40 @@ else
             esac
 
             pushd build
-            if [ ! -z "$CPU_START" ] && [ ! -z "$CPU_END" ]
-            then
-                echo "USING CORES $CPU_START $CPU_END"
-                taskset --cpu-list $CPU_START-$CPU_END wasmtime run --dir . --mapdir fixture::$RUST_BUILD_DIR  wasi-nn-example.wasm --wasi-modules=experimental-wasi-nn
-            else
-                wasmtime run --dir . --mapdir fixture::$RUST_BUILD_DIR  wasi-nn-example.wasm --wasi-modules=experimental-wasi-nn
-            fi
-
             # Save results to the out_dir
             echo "Making dir $OUT_DIR"
             mkdir -p "$OUT_DIR/SUMMARY"
-            cp testout_all.csv "$OUT_DIR/testout_all-$BACKEND-$MODEL-$(date +"%Y-%m-%d-%H%M%S").csv"
-            cp testout.csv "$OUT_DIR/SUMMARY/testout-$BACKEND-$MODEL-$(date +"%Y-%m-%d-%H%M%S").csv"
+
+            if [ ! -z "$CPU_START" ] && [ ! -z "$CPU_END" ]
+            then
+                current_end=$(($CPU_END))
+
+                for i in $(seq 1 $BATCH_SZ)
+                do
+                    echo "$CPU_INFO,$BACKEND,$MODEL,$THREADS" >> testout_all.csv
+                    echo "$CPU_INFO,$BACKEND,$MODEL,$THREADS" >> testout.csv
+                    echo "USING CORES $CPU_START $current_end - Batch # $i of $BATCH_SZ"
+                    taskset --cpu-list $CPU_START-$current_end wasmtime run --dir . --mapdir fixture::$RUST_BUILD_DIR  wasi-nn-example.wasm --wasi-modules=experimental-wasi-nn
+                    cp testout_all.csv "$OUT_DIR/testout_all-$BACKEND-$MODEL-$(date +"%Y-%m-%d-%H%M%S%3N").csv"
+                    cp testout.csv "$OUT_DIR/SUMMARY/testout-$BACKEND-$MODEL-$(date +"%Y-%m-%d-%H%M%S%3N").csv"
+                    ls -l "$OUT_DIR"
+                    rm testout.csv
+                    rm testout_all.csv
+                    current_end=$(($current_end + $THREAD_JMP))
+                    CPU_END=$(($current_end + $THREAD_JMP))
+                    THREADS=$(($current_end-$CPU_START+1))
+
+                done
+            else
+                echo "$CPU_INFO,$BACKEND,$MODEL,$THREADS" >> testout_all.csv
+                echo "$CPU_INFO,$BACKEND,$MODEL,$THREADS" >> testout.csv
+                wasmtime run --dir . --mapdir fixture::$RUST_BUILD_DIR  wasi-nn-example.wasm --wasi-modules=experimental-wasi-nn
+                # Save results to the out_dir
+                cp testout_all.csv "$OUT_DIR/testout_all-$BACKEND-$MODEL-$(date +"%Y-%m-%d-%H%M%S%3N").csv"
+                cp testout.csv "$OUT_DIR/SUMMARY/testout-$BACKEND-$MODEL-$(date +"%Y-%m-%d-%H%M%S%3N").csv"
+                rm testout.csv
+                rm testout_all.csv
+            fi
         ;;
         *)
             echo "Unknown build type $BUILD_TYPE"

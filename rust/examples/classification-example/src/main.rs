@@ -45,6 +45,8 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
     let init_time = Instant::now();
     let mut id_secs: Duration;
     let mut all_results: Vec<f64> = vec![];
+    let mut final_results: Vec<f64> = vec![];
+    let mut finaltime: f64 = 0.0;
     let gba: Vec<Vec<u8>> = create_gba(backend);
 
     let graph = unsafe {
@@ -80,6 +82,7 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
         }
 
         let mut totaltime: f64 = 0.0;
+
         for j in 0..loop_size {
             let id_time = Instant::now();
             // Execute the inference.
@@ -111,12 +114,15 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
                 }
 
                 println!("------------------------------------------------------------");
-                print_csv(&all_results, "testout".to_string(), totaltime);
+                // print_csv(&all_results, "testout".to_string(), totaltime);
                 println!("############################################################");
+                final_results.append(&mut all_results);
                 all_results.clear();
+                finaltime += totaltime;
             }
         }
     }
+    print_csv(&final_results, "testout".to_string(), finaltime);
 }
 
 fn create_gba (backend: u8) -> Vec<Vec<u8>> {
@@ -213,7 +219,7 @@ fn image_to_tensor(path: String, dimensions: &[u32], backend: u8) -> Vec<u8> {
 
 fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
     let loop_size: u32 = env!("LOOP_SIZE").parse().unwrap();
-    let run_info = format!("{},{},{},{}\n",env!("CPU_INFO"), env!("BACKEND"), env!("MODEL"), env!("THREADS"));
+    // let run_info = format!("{},{},{},{}\n",env!("CPU_INFO"), env!("BACKEND"), env!("MODEL"), env!("THREADS"));
 
     if all_results.len() > 5 {
         println!(
@@ -237,14 +243,29 @@ fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
 
     let filename_sum = filename.clone() + ".csv";
     let filename_all = filename.clone() + "_all.csv";
-    let mut outfile_sum = std::fs::File::create(filename_sum.clone());
-    let mut outfile_all = std::fs::File::create(filename_all.clone());
+    let mut outfile_sum = fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(filename_sum.clone());
+        // .unwrap();
+
+    let mut outfile_all =fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(filename_all.clone());
+        // .unwrap();
+    // let mut outfile_sum = std::fs::File::open(filename_sum.clone());
+    // let mut outfile_all = std::fs::File::open(filename_all.clone());
+    // let mut outfile_sum = std::fs::File::create(filename_sum.clone());
+    // let mut outfile_all = std::fs::File::create(filename_all.clone());
 
     if outfile_all.is_ok() {
         let mut outfile_all = outfile_all.unwrap();
-        outfile_all.write_all(run_info.as_bytes());
-        let cvs_all_str = String::from("run,time\n");
-        outfile_all.write_all(cvs_all_str.as_bytes());
+        // outfile_all.write_all(run_info.as_bytes());
+        // if header {
+            let cvs_all_str = String::from("run,time\n");
+            outfile_all.write_all(cvs_all_str.as_bytes());
+        // }
         for i in 0..all_results.len() {
             outfile_all.write_all(format!("{},{}\n", i, all_results[i]).as_bytes());
         }
@@ -254,9 +275,12 @@ fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
 
     if outfile_sum.is_ok() {
         let mut outfile_sum = outfile_sum.unwrap();
-        outfile_sum.write_all(run_info.as_bytes());
-        let cvs_sum_str = String::from("runs,total_time,avg_time,std_dev\n");
-        outfile_sum.write_all(cvs_sum_str.as_bytes());
+        // outfile_sum.write_all(run_info.as_bytes());
+        // if header{
+            let cvs_sum_str = String::from("runs,total_time,avg_time,std_dev\n");
+            outfile_sum.write_all(cvs_sum_str.as_bytes());
+        // }
+
         outfile_sum.write_all(format!("{},{},{},{}\n", loop_size, totaltime, res_mean, res_dev).as_bytes());
     } else {
         println!("Couldn't save CSV data to {}", filename_sum);
