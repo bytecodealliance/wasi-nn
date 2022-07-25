@@ -5,8 +5,11 @@
   "scripts": {
     "asbuild:untouched": "asc examples/object-classification.ts --runtime stub --use abort=examples/object-classification/wasi_abort --target debug --enable simd",
     "asbuild:optimized": "asc examples/object-classification.ts --runtime stub --use abort=examples/object-classification/wasi_abort --target release --enable simd",
+    "asbuild:openvino": "asc examples/object-classification-openvino.ts --runtime stub --use abort=examples/object-classification-openvino/wasi_abort --target release --enable simd",
+    "asbuild:tensorflow": "asc examples/object-classification-tensorflow.ts --runtime stub --use abort=examples/object-classification-tensorflow/wasi_abort --target release --enable simd",
     "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized",
-    "demo": "npm run asbuild && ./demo.sh",
+    "openvino": "npm run asbuild:openvino && ./demo.sh",
+    "tensorflow": "npm run asbuild:tensorflow && ./demo.sh",
     "nn": "./wasmtime run build/optimized.wasm --dir build --wasi-modules=experimental-wasi-nn",
     "postinstall": "patch-package"
   },

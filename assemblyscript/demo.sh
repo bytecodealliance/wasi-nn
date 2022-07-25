@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Sets up the AssemblyScript demo for wasi-nn. Note you'll need to build and copy the wasmtime CLI 
+# Sets up the AssemblyScript demo for wasi-nn. Note you'll need to build and copy the wasmtime CLI
 # and copy it to this directory for this script to work.
 
 set -e
@@ -14,5 +14,6 @@ wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/mobilenet.xml
 wget --no-clobber --directory-prefix=$DOWNLOAD_DIR $FIXTURE/tensor-1x224x224x3-f32.bgr
 cp -rn images $DOWNLOAD_DIR
 
+export MAPDIR="fixture"
 # Run the demo
-wasmtime run build/optimized.wasm --dir build --wasi-modules=experimental-wasi-nn
+wasmtime run build/optimized.wasm --dir build --mapdir fixture::$DOWNLOAD_DIR --wasi-modules=experimental-wasi-nn
