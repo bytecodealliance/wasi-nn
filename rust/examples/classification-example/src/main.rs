@@ -1,10 +1,8 @@
 use image::{DynamicImage};
 use image::io::Reader;
-// use std::io::prelude::*;
 use std::io::Write;
 use std::{convert::TryInto, str::FromStr};
 use std::fs;
-// use std::fs::OpenOptions;
 use wasi_nn;
 mod imagenet_classes;
 use std::env;
@@ -12,25 +10,30 @@ use std::time::{Duration, Instant};
 use floating_duration::{TimeAsFloat};
 use statistical::{mean, standard_deviation};
 
-
 pub fn main() {
-    let loop_size: u32 = env!("LOOP_SIZE").parse().unwrap();
+    let runs: u32 = env!("RUNS").parse().unwrap();
     let tensor_desc_data = fs::read_to_string("fixture/tensor.desc").unwrap();
     let tensor_desc = TensorDescription::from_str(&tensor_desc_data).unwrap();
+    let batch_sz:usize = env!("BATCH_SZ").parse().unwrap();
     match env!("BACKEND") {
         "openvino" => {
+            let ov_dim = [batch_sz as u32, tensor_desc.dimensions()[1], tensor_desc.dimensions()[2], tensor_desc.dimensions()[3]];
             println!("##################################################################\n");
-            println!("Running {} benchmark using:\nOpenVINO\n{} model\nlooping for {} times...\n",env!("BUILD_TYPE"), env!("MODEL"), loop_size);
+            println!("Running {} benchmark using:\nOpenVINO\n{} model\nlooping for {} times...\n",env!("BUILD_TYPE"), env!("MODEL"), runs);
             println!("##################################################################");
-            execute(wasi_nn::GRAPH_ENCODING_OPENVINO, &tensor_desc.dimensions(), vec![0f32; 1001], loop_size);
+            let out_sz:usize = 1001 * batch_sz;
+
+            execute(wasi_nn::GRAPH_ENCODING_OPENVINO, &ov_dim, vec![0f32; out_sz], runs);
+
         },
         "tensorflow" => {
             // TensorFlow orders the shape slightly different than OpenVINO
-            let tf_dim = [tensor_desc.dimensions()[0], tensor_desc.dimensions()[2], tensor_desc.dimensions()[3], tensor_desc.dimensions()[1]];
+            let tf_dim = [batch_sz as u32, tensor_desc.dimensions()[2], tensor_desc.dimensions()[3], tensor_desc.dimensions()[1]];
             println!("#####################################################################\n");
-            println!("Running {} benchmark using:\nTensorflow\n{} model\nlooping for {} times...\n",env!("BUILD_TYPE"), env!("MODEL"), loop_size);
+            println!("Running {} benchmark using:\nTensorflow\n{} model\nlooping for {} times...\n",env!("BUILD_TYPE"), env!("MODEL"), runs);
             println!("#####################################################################");
-            execute(wasi_nn::GRAPH_ENCODING_TENSORFLOW, &tf_dim, vec![0f32; 1000], loop_size);
+            let out_sz:usize = 1001 * batch_sz;
+            execute(wasi_nn::GRAPH_ENCODING_TENSORFLOW, &tf_dim, vec![0f32; out_sz], runs);
         },
         _ => {
             println!("Unknown backend, exiting...");
@@ -39,7 +42,7 @@ pub fn main() {
     }
 }
 
-fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffer: Vec<f32>, loop_size: u32) {
+fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffer: Vec<f32>, runs: u32) {
     println!("** Using the {} backend **", backend);
     println!("Tensor shape / size is {:?}", dimensions);
     let init_time = Instant::now();
@@ -47,11 +50,20 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
     let mut all_results: Vec<f64> = vec![];
     let mut final_results: Vec<f64> = vec![];
     let mut finaltime: f64 = 0.0;
-    let gba: Vec<Vec<u8>> = create_gba(backend);
+    let batch_sz:usize = env!("BATCH_SZ").parse().unwrap();
+    let max_file_num:usize = env!("MAX_FILE_NUM").parse().unwrap();
+    let mut curr_img_index = 1;
+    let mut finished_runs = 0;
+    let mut gba_r: Vec<&[u8]> = vec![];
+    let gba = create_gba(backend);
+
+    for i in 0..gba.len() {
+        gba_r.push(gba[i].as_slice());
+    }
 
     let graph = unsafe {
         wasi_nn::load(
-            &[&gba[0], &gba[1]],
+            &gba_r,
             backend,
             wasi_nn::EXECUTION_TARGET_CPU,
         )
@@ -64,38 +76,51 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
     println!("Created wasi-nn execution context with ID: {}", context);
     println!("Initiating the backend took {}ms", init_secs.as_fractional_millis());
 
-    // Load a tensor that precisely matches the graph input tensor (see
-    for i in 0..5 {
-        let filename: String = format!("{}{}{}", "fixture/images/", i, ".jpg");
-
-        let tensor_data: Vec<u8> = image_to_tensor(filename, dimensions, backend);
-
-
-        let tensor = wasi_nn::Tensor {
-                        dimensions: dimensions,
-                        r#type: wasi_nn::TENSOR_TYPE_F32,
-                        data: &tensor_data,
-                    };
-
-        unsafe {
-            wasi_nn::set_input(context, 0, tensor).unwrap();
-        }
-
+    let filen: String = format!("{}{}", "fixture/images/", "1.jpg");
+    let td: Vec<u8> = image_to_tensor(filen, dimensions, backend);
+    let mut tensor_data_batch: Vec<u8> = vec![0;td.len() * batch_sz];
         let mut totaltime: f64 = 0.0;
 
-        for j in 0..loop_size {
+        while finished_runs < runs {
+
+            for i in 0..batch_sz {
+                let filename: String = format!("{}{}{}", "fixture/images/", curr_img_index, ".jpg");
+                let tensor_data: Vec<u8> = image_to_tensor(filename, dimensions, backend);
+                let jump = i * tensor_data.len();
+                    for k in 0..tensor_data.len() {
+                        let testd = tensor_data[k];
+                        tensor_data_batch[k + jump] = tensor_data[k];
+                    }
+
+                if curr_img_index < max_file_num {
+                    curr_img_index += 1;
+                } else {
+                    curr_img_index = 1;
+                }
+            }
+                let tensor = wasi_nn::Tensor {
+                                dimensions: dimensions,
+                                r#type: wasi_nn::TENSOR_TYPE_F32,
+                                data: &tensor_data_batch,
+                            };
+                unsafe {
+                    wasi_nn::set_input(context, 0, tensor).unwrap();
+                }
+
             let id_time = Instant::now();
             // Execute the inference.
             unsafe {
                 wasi_nn::compute(context).unwrap();
             }
+
             id_secs = id_time.elapsed();
             totaltime += id_secs.as_fractional_millis();
             all_results.push(id_secs.as_fractional_millis());
+            finished_runs += 1;
 
-            if j == loop_size - 1 {
+            if finished_runs >= runs {
                 println!("############################################################");
-                println!("Image index {} results", i);
+                println!("Image results");
                 println!("------------------------------------------------------------");
                 unsafe {
                     wasi_nn::get_output(
@@ -107,21 +132,23 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
                     .unwrap();
                 }
 
-                let results = sort_results(&output_buffer, backend);
+                let results = sort_results(&output_buffer, backend, batch_sz);
 
-                for i in 0..5 {
-                    println!("{}.) {} = ({:?})", i + 1, imagenet_classes::IMAGENET_CLASSES[results[i].0], results[i]);
+                for x in 0..batch_sz {
+                    println!("---------------- Image # {} ---------------------------------", x);
+                    for i in 0..5 {
+                        println!("{}.) {} = ({:?})", i + 1, imagenet_classes::IMAGENET_CLASSES[results[x][i].0], results[0][i]);
+                    }
                 }
 
                 println!("------------------------------------------------------------");
-                // print_csv(&all_results, "testout".to_string(), totaltime);
                 println!("############################################################");
                 final_results.append(&mut all_results);
                 all_results.clear();
                 finaltime += totaltime;
+
             }
         }
-    }
     print_csv(&final_results, "testout".to_string(), finaltime);
 }
 
@@ -136,9 +163,11 @@ fn create_gba (backend: u8) -> Vec<Vec<u8>> {
             Vec::from([xml.into_bytes(), weights])
         },
         wasi_nn::GRAPH_ENCODING_TENSORFLOW => {
-            let filename: String = "saved_model.pb".to_string();
             let model_path: String = env!("MAPDIR").to_string();
-            Vec::from([model_path.into_bytes(), filename.into_bytes()])
+            Vec::from([model_path.into_bytes(),
+                        "signature,serving_default".to_owned().into_bytes(),
+                        "tag,serve".to_owned().into_bytes(),
+                        ])
         },
         _ => {
             println!("Unknown backend {}", backend);
@@ -152,23 +181,29 @@ fn create_gba (backend: u8) -> Vec<Vec<u8>> {
 // Sort the buffer of probabilities. The graph places the match probability for each class at the
 // index for that class (e.g. the probability of class 42 is placed at buffer[42]). Here we convert
 // to a wrapping InferenceResult and sort the results.
-fn sort_results(buffer: &[f32], backend: u8) -> Vec<InferenceResult> {
+
+fn sort_results(buffer: &[f32], backend: u8, batch_size: usize) -> Vec<Vec<InferenceResult>> {
     let skipval = match backend {
         wasi_nn::GRAPH_ENCODING_OPENVINO => { 1 },
         _ => { 0 }
     };
 
-    let mut results: Vec<InferenceResult> = buffer
-        .iter()
-        .skip(skipval)
-        .enumerate()
-        .map(|(c, p)| InferenceResult(c, *p))
-        .collect();
-    results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-    results
+    let chunks: Vec<&[f32]> =  buffer.chunks(1000).collect();
+    let mut ret_vec: Vec<Vec<InferenceResult>> = vec![];
+
+    for i in 0..batch_size {
+
+        let mut results: Vec<InferenceResult> = chunks[i as usize]
+            .iter()
+            .skip(skipval)
+            .enumerate()
+            .map(|(c, p)| InferenceResult(c, *p))
+            .collect();
+        results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        ret_vec.push(results);
+    }
+    ret_vec
 }
-
-
 
 fn image_to_tensor(path: String, dimensions: &[u32], backend: u8) -> Vec<u8> {
     let result: Vec<u8> = match backend {
@@ -191,7 +226,6 @@ fn image_to_tensor(path: String, dimensions: &[u32], backend: u8) -> Vec<u8> {
                     u8_f32_arr[(i * 4) + j] = u8_bytes[j];
                 }
             }
-
             u8_f32_arr
         },
         wasi_nn::GRAPH_ENCODING_TENSORFLOW => {
@@ -218,8 +252,7 @@ fn image_to_tensor(path: String, dimensions: &[u32], backend: u8) -> Vec<u8> {
 }
 
 fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
-    let loop_size: u32 = env!("LOOP_SIZE").parse().unwrap();
-    // let run_info = format!("{},{},{},{}\n",env!("CPU_INFO"), env!("BACKEND"), env!("MODEL"), env!("THREADS"));
+    let runs: u32 = env!("RUNS").parse().unwrap();
 
     if all_results.len() > 5 {
         println!(
@@ -231,7 +264,7 @@ fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
     }
 
     println!("\n** Performance results **");
-    println!("{} runs took {}ms total",loop_size, totaltime);
+    println!("{} runs took {}ms total",runs, totaltime);
     let res_mean = mean(&all_results);
     let mut res_dev: f64 = 0.0;
 
@@ -247,25 +280,16 @@ fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
         .write(true)
         .append(true)
         .open(filename_sum.clone());
-        // .unwrap();
 
     let mut outfile_all =fs::OpenOptions::new()
         .write(true)
         .append(true)
         .open(filename_all.clone());
-        // .unwrap();
-    // let mut outfile_sum = std::fs::File::open(filename_sum.clone());
-    // let mut outfile_all = std::fs::File::open(filename_all.clone());
-    // let mut outfile_sum = std::fs::File::create(filename_sum.clone());
-    // let mut outfile_all = std::fs::File::create(filename_all.clone());
 
     if outfile_all.is_ok() {
         let mut outfile_all = outfile_all.unwrap();
-        // outfile_all.write_all(run_info.as_bytes());
-        // if header {
             let cvs_all_str = String::from("run,time\n");
             outfile_all.write_all(cvs_all_str.as_bytes());
-        // }
         for i in 0..all_results.len() {
             outfile_all.write_all(format!("{},{}\n", i, all_results[i]).as_bytes());
         }
@@ -275,13 +299,10 @@ fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
 
     if outfile_sum.is_ok() {
         let mut outfile_sum = outfile_sum.unwrap();
-        // outfile_sum.write_all(run_info.as_bytes());
-        // if header{
             let cvs_sum_str = String::from("runs,total_time,avg_time,std_dev\n");
             outfile_sum.write_all(cvs_sum_str.as_bytes());
-        // }
 
-        outfile_sum.write_all(format!("{},{},{},{}\n", loop_size, totaltime, res_mean, res_dev).as_bytes());
+        outfile_sum.write_all(format!("{},{},{},{}\n", runs, totaltime, res_mean, res_dev).as_bytes());
     } else {
         println!("Couldn't save CSV data to {}", filename_sum);
     }

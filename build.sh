@@ -5,29 +5,31 @@ if [ ! -d "/opt/intel/openvino" ]; then
     echo "Please install OpenVino"
 
 else
-    while getopts b:m:l:t:o:c:s:e:z:j: flag
+    while getopts b:m:r:t:o:c:s:e:z:j:x: flag
     do
         case "${flag}" in
             b) BACKEND=${OPTARG};;
             m) MODEL=${OPTARG};;
-            l) LOOP_SIZE=${OPTARG};;
+            r) RUNS=${OPTARG};;
             t) BUILD_TYPE=${OPTARG};;
             o) OUT_DIR=${OPTARG};;
             c) CPU_INFO=${OPTARG};;
             s) CPU_START=${OPTARG};;
             e) CPU_END=${OPTARG};;
-            z) BATCH_SZ=${OPTARG};;
+            z) BENCH_CNT=${OPTARG};;
             j) THREAD_JMP=${OPTARG};;
+            x) BATCH_SZ=${OPTARG};;
         esac
     done
 
     # Default values
     if [ -z "$BACKEND" ]; then BACKEND="openvino"; fi
     if [ -z "$MODEL" ]; then MODEL="mobilenet_v2"; fi
-    if [ -z "$LOOP_SIZE" ]; then LOOP_SIZE="1"; fi
+    if [ -z "$RUNS" ]; then RUNS="1"; fi
     if [ -z "$BUILD_TYPE" ]; then BUILD_TYPE="rust"; fi
     if [ -z "$OUT_DIR" ]; then OUT_DIR="RESULTS"; fi
-    if [ -z "$CPU_INFO" ]; then CPU_INFO="UNKOWN"; fi
+    if [ -z "$CPU_INFO" ]; then CPU_INFO="UNKNOWN"; fi
+    if [ -z "$BENCH_CNT" ]; then BENCH_CNT=1; fi
     if [ -z "$BATCH_SZ" ]; then BATCH_SZ=1; fi
     if [ -z "$THREAD_JMP" ]; then THREAD_JMP=8; fi
     if [ -z "$CPU_START" ] && [ ! -z "$CPU_END" ]
@@ -54,12 +56,13 @@ else
 
     export BACKEND=$BACKEND
     export MODEL=$MODEL
-    export LOOP_SIZE=$LOOP_SIZE
+    export RUNS=$RUNS
     export BUILD_TYPE=$BUILD_TYPE
     export OUT_DIR=$OUT_DIR
     export CPU_INFO=$CPU_INFO
     export THREADS=$THREADS
     export CPU_END=$CPU_END
+    export BATCH_SZ=$BATCH_SZ
 
     WASI_NN_DIR=$(dirname "$0" | xargs dirname)
     WASI_NN_DIR=$(realpath $WASI_NN_DIR)
@@ -89,7 +92,12 @@ else
             cargo build --release --target=wasm32-wasi
             mkdir -p $WASI_NN_DIR/rust/examples/classification-example/build
             RUST_BUILD_DIR=$(realpath $WASI_NN_DIR/rust/examples/classification-example/build/)
-            cp -rn images $RUST_BUILD_DIR
+            mkdir -p $RUST_BUILD_DIR/images
+            # TODO figure out a way to support multiple types at once... jpg,png,jpeg,etc.
+            cp -rn images/*.jpg  $RUST_BUILD_DIR/images
+            # Change file names to numbers so they can be easily parsed
+            ls -v $RUST_BUILD_DIR/images | cat -n | while read n f; do mv -n "$RUST_BUILD_DIR/images/$f" "$RUST_BUILD_DIR/images/$n.jpg"; done
+            export MAX_FILE_NUM=$(ls $RUST_BUILD_DIR/images | wc -l)
             pushd examples/classification-example
             export MAPDIR="fixture"
             cargo build --release --target=wasm32-wasi
@@ -98,7 +106,6 @@ else
             case $BACKEND in
                 openvino)
                     echo "Using OpenVino"
-                    source /opt/intel/openvino/bin/setupvars.sh
                     RUST_DIR=$(realpath $WASI_NN_DIR/rust/examples/classification-example/)
                     FIXTURE=https://github.com/intel/openvino-rs/raw/main/crates/openvino/tests/fixtures
 
@@ -119,9 +126,9 @@ else
                     ;;
                 tensorflow)
                     echo "Using Tensorflow"
-                    cp src/saved_model.pb $RUST_BUILD_DIR
-                    cp -r src/variables $RUST_BUILD_DIR
                     cp models/$MODEL/tensor.desc $RUST_BUILD_DIR
+                    cp models/$MODEL/saved_model.pb $RUST_BUILD_DIR
+                    cp -r models/$MODEL/variables $RUST_BUILD_DIR
                     ;;
                 *)
                     echo "Unknown backend, please enter 'openvino' or 'tensorflow'"
@@ -138,11 +145,11 @@ else
             then
                 current_end=$(($CPU_END))
 
-                for i in $(seq 1 $BATCH_SZ)
+                for i in $(seq 1 $BENCH_CNT)
                 do
                     echo "$CPU_INFO,$BACKEND,$MODEL,$THREADS" >> testout_all.csv
                     echo "$CPU_INFO,$BACKEND,$MODEL,$THREADS" >> testout.csv
-                    echo "USING CORES $CPU_START $current_end - Batch # $i of $BATCH_SZ"
+                    echo "USING CORES $CPU_START $current_end - Batch # $i of $BENCH_CNT"
                     taskset --cpu-list $CPU_START-$current_end wasmtime run --dir . --mapdir fixture::$RUST_BUILD_DIR  wasi-nn-example.wasm --wasi-modules=experimental-wasi-nn
                     cp testout_all.csv "$OUT_DIR/testout_all-$BACKEND-$MODEL-$(date +"%Y-%m-%d-%H%M%S%3N").csv"
                     cp testout.csv "$OUT_DIR/SUMMARY/testout-$BACKEND-$MODEL-$(date +"%Y-%m-%d-%H%M%S%3N").csv"
@@ -170,4 +177,3 @@ else
         ;;
     esac
 fi
-
