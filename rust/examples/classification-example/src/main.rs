@@ -9,12 +9,15 @@ use std::env;
 use std::time::{Duration, Instant};
 use floating_duration::{TimeAsFloat};
 use statistical::{mean, standard_deviation};
+use std::path::Path;
 
 pub fn main() {
     let runs: u32 = env!("RUNS").parse().unwrap();
     let tensor_desc_data = fs::read_to_string("fixture/tensor.desc").unwrap();
     let tensor_desc = TensorDescription::from_str(&tensor_desc_data).unwrap();
     let batch_sz:usize = env!("BATCH_SZ").parse().unwrap();
+    let curr_img:CurrImg = CurrImg{index: 0, max_index: 0};
+
     match env!("BACKEND") {
         "openvino" => {
             let ov_dim = [batch_sz as u32, tensor_desc.dimensions()[1], tensor_desc.dimensions()[2], tensor_desc.dimensions()[3]];
@@ -23,7 +26,7 @@ pub fn main() {
             println!("##################################################################");
             let out_sz:usize = 1001 * batch_sz;
 
-            execute(wasi_nn::GRAPH_ENCODING_OPENVINO, &ov_dim, vec![0f32; out_sz], runs);
+            execute(wasi_nn::GRAPH_ENCODING_OPENVINO, &ov_dim, vec![0f32; out_sz], runs, curr_img);
 
         },
         "tensorflow" => {
@@ -32,8 +35,8 @@ pub fn main() {
             println!("#####################################################################\n");
             println!("Running {} benchmark using:\nTensorflow\n{} model\nlooping for {} times...\n",env!("BUILD_TYPE"), env!("MODEL"), runs);
             println!("#####################################################################");
-            let out_sz:usize = 1001 * batch_sz;
-            execute(wasi_nn::GRAPH_ENCODING_TENSORFLOW, &tf_dim, vec![0f32; out_sz], runs);
+            let out_sz:usize = 1000 * batch_sz;
+            execute(wasi_nn::GRAPH_ENCODING_TENSORFLOW, &tf_dim, vec![0f32; out_sz], runs, curr_img);
         },
         _ => {
             println!("Unknown backend, exiting...");
@@ -42,7 +45,7 @@ pub fn main() {
     }
 }
 
-fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffer: Vec<f32>, runs: u32) {
+fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffer: Vec<f32>, runs: u32, mut curr_img: CurrImg) {
     println!("** Using the {} backend **", backend);
     println!("Tensor shape / size is {:?}", dimensions);
     let init_time = Instant::now();
@@ -51,8 +54,8 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
     let mut final_results: Vec<f64> = vec![];
     let mut finaltime: f64 = 0.0;
     let batch_sz:usize = env!("BATCH_SZ").parse().unwrap();
-    let max_file_num:usize = env!("MAX_FILE_NUM").parse().unwrap();
-    let mut curr_img_index = 1;
+    let max: u32 = env!("MAX_FILE_NUM").parse().unwrap();
+    curr_img.set_max(max);
     let mut finished_runs = 0;
     let mut gba_r: Vec<&[u8]> = vec![];
     let gba = create_gba(backend);
@@ -76,27 +79,20 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
     println!("Created wasi-nn execution context with ID: {}", context);
     println!("Initiating the backend took {}ms", init_secs.as_fractional_millis());
 
-    let filen: String = format!("{}{}", "fixture/images/", "1.jpg");
-    let td: Vec<u8> = image_to_tensor(filen, dimensions, backend);
+    let filename = curr_img.get_next_img_path();
+    let td: Vec<u8> = image_to_tensor(filename, dimensions, backend);
     let mut tensor_data_batch: Vec<u8> = vec![0;td.len() * batch_sz];
         let mut totaltime: f64 = 0.0;
 
         while finished_runs < runs {
 
             for i in 0..batch_sz {
-                let filename: String = format!("{}{}{}", "fixture/images/", curr_img_index, ".jpg");
+                let filename = curr_img.get_next_img_path();
                 let tensor_data: Vec<u8> = image_to_tensor(filename, dimensions, backend);
                 let jump = i * tensor_data.len();
                     for k in 0..tensor_data.len() {
-                        let testd = tensor_data[k];
                         tensor_data_batch[k + jump] = tensor_data[k];
                     }
-
-                if curr_img_index < max_file_num {
-                    curr_img_index += 1;
-                } else {
-                    curr_img_index = 1;
-                }
             }
                 let tensor = wasi_nn::Tensor {
                                 dimensions: dimensions,
@@ -116,33 +112,37 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
             id_secs = id_time.elapsed();
             totaltime += id_secs.as_fractional_millis();
             all_results.push(id_secs.as_fractional_millis());
+
+
+
+            println!("############################################################");
+            println!("Image results run {}", finished_runs);
+            println!("------------------------------------------------------------");
+            unsafe {
+                wasi_nn::get_output(
+                    context,
+                    0,
+                    &mut output_buffer[..] as *mut [f32] as *mut u8,
+                    (output_buffer.len() * 4).try_into().unwrap(),
+                )
+                .unwrap();
+            }
+
+            let results = sort_results(&output_buffer, backend, batch_sz);
+
+            for x in 0..batch_sz {
+                println!("---------------- Image # {} ---------------------------------", x);
+                for i in 0..5 {
+                    println!("{}.) {} = ({:?})", i + 1, imagenet_classes::IMAGENET_CLASSES[results[x][i].0], results[0][i]);
+                }
+            }
+
+            println!("------------------------------------------------------------");
+            println!("############################################################");
+
             finished_runs += 1;
 
             if finished_runs >= runs {
-                println!("############################################################");
-                println!("Image results");
-                println!("------------------------------------------------------------");
-                unsafe {
-                    wasi_nn::get_output(
-                        context,
-                        0,
-                        &mut output_buffer[..] as *mut [f32] as *mut u8,
-                        (output_buffer.len() * 4).try_into().unwrap(),
-                    )
-                    .unwrap();
-                }
-
-                let results = sort_results(&output_buffer, backend, batch_sz);
-
-                for x in 0..batch_sz {
-                    println!("---------------- Image # {} ---------------------------------", x);
-                    for i in 0..5 {
-                        println!("{}.) {} = ({:?})", i + 1, imagenet_classes::IMAGENET_CLASSES[results[x][i].0], results[0][i]);
-                    }
-                }
-
-                println!("------------------------------------------------------------");
-                println!("############################################################");
                 final_results.append(&mut all_results);
                 all_results.clear();
                 finaltime += totaltime;
@@ -251,6 +251,8 @@ fn image_to_tensor(path: String, dimensions: &[u32], backend: u8) -> Vec<u8> {
     return result;
 }
 
+
+
 fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
     let runs: u32 = env!("RUNS").parse().unwrap();
 
@@ -299,8 +301,8 @@ fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
 
     if outfile_sum.is_ok() {
         let mut outfile_sum = outfile_sum.unwrap();
-            let cvs_sum_str = String::from("runs,total_time,avg_time,std_dev\n");
-            outfile_sum.write_all(cvs_sum_str.as_bytes());
+        let cvs_sum_str = String::from("runs,total_time,avg_time,std_dev\n");
+        outfile_sum.write_all(cvs_sum_str.as_bytes());
 
         outfile_sum.write_all(format!("{},{},{},{}\n", runs, totaltime, res_mean, res_dev).as_bytes());
     } else {
@@ -348,5 +350,34 @@ impl FromStr for TensorDescription {
             dimensions.push(dimension);
         }
         Ok(Self(precision, dimensions))
+    }
+}
+
+
+struct CurrImg {
+    index: u32,
+    max_index: u32,
+}
+
+impl CurrImg {
+    fn get_next_index(&mut self) -> u32 {
+        if self.index < self.max_index {
+            self.index += 1;
+        } else {
+            self.index = 1;
+        }
+        return self.index;
+    }
+
+    fn get_next_img_path (&mut self) -> String {
+        let mut img_path: String = format!("{}{}{}", "fixture/images/", self.get_next_index(), ".jpg");
+        while !Path::new(&img_path).exists() {
+            img_path = format!("{}{}{}", "fixture/images/", self.get_next_index(), ".jpg");
+        }
+        return img_path;
+    }
+
+    fn set_max(&mut self, new_max: u32) {
+        self.max_index = new_max;
     }
 }

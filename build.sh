@@ -93,6 +93,7 @@ else
             mkdir -p $WASI_NN_DIR/rust/examples/classification-example/build
             RUST_BUILD_DIR=$(realpath $WASI_NN_DIR/rust/examples/classification-example/build/)
             mkdir -p $RUST_BUILD_DIR/images
+            rm -f $RUST_BUILD_DIR/images/*
             # TODO figure out a way to support multiple types at once... jpg,png,jpeg,etc.
             cp -rn images/*.jpg  $RUST_BUILD_DIR/images
             # Change file names to numbers so they can be easily parsed
