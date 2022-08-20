@@ -16,26 +16,28 @@ pub fn main() {
     let tensor_desc_data = fs::read_to_string("fixture/tensor.desc").unwrap();
     let tensor_desc = TensorDescription::from_str(&tensor_desc_data).unwrap();
     let batch_sz:usize = env!("BATCH_SZ").parse().unwrap();
-    let curr_img:CurrImg = CurrImg{index: 0, max_index: 0};
+    let mut curr_img:CurrImg = CurrImg{index: 0, max_index: 0, out_img_size: 0, curr_path: None};
 
     match env!("BACKEND") {
         "openvino" => {
+            curr_img.out_img_size = 1001;
             let ov_dim = [batch_sz as u32, tensor_desc.dimensions()[1], tensor_desc.dimensions()[2], tensor_desc.dimensions()[3]];
             println!("##################################################################\n");
             println!("Running {} benchmark using:\nOpenVINO\n{} model\nlooping for {} times...\n",env!("BUILD_TYPE"), env!("MODEL"), runs);
             println!("##################################################################");
-            let out_sz:usize = 1001 * batch_sz;
+            let out_sz:usize = curr_img.out_img_size * batch_sz;
 
             execute(wasi_nn::GRAPH_ENCODING_OPENVINO, &ov_dim, vec![0f32; out_sz], runs, curr_img);
 
         },
         "tensorflow" => {
             // TensorFlow orders the shape slightly different than OpenVINO
+            curr_img.out_img_size = 1000;
             let tf_dim = [batch_sz as u32, tensor_desc.dimensions()[2], tensor_desc.dimensions()[3], tensor_desc.dimensions()[1]];
             println!("#####################################################################\n");
             println!("Running {} benchmark using:\nTensorflow\n{} model\nlooping for {} times...\n",env!("BUILD_TYPE"), env!("MODEL"), runs);
             println!("#####################################################################");
-            let out_sz:usize = 1000 * batch_sz;
+            let out_sz:usize = curr_img.out_img_size * batch_sz;
             execute(wasi_nn::GRAPH_ENCODING_TENSORFLOW, &tf_dim, vec![0f32; out_sz], runs, curr_img);
         },
         _ => {
@@ -79,20 +81,22 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
     println!("Created wasi-nn execution context with ID: {}", context);
     println!("Initiating the backend took {}ms", init_secs.as_fractional_millis());
 
-    let filename = curr_img.get_next_img_path();
-    let td: Vec<u8> = image_to_tensor(filename, dimensions, backend);
+    // Calculate the size of the buffer needed for a single image.
+    let mut filename = curr_img.get_next_img_path();
+    let td: Vec<u8> = image_to_tensor(&filename, dimensions, backend);
     let mut tensor_data_batch: Vec<u8> = vec![0;td.len() * batch_sz];
-        let mut totaltime: f64 = 0.0;
+    let mut totaltime: f64 = 0.0;
 
         while finished_runs < runs {
-
             for i in 0..batch_sz {
-                let filename = curr_img.get_next_img_path();
-                let tensor_data: Vec<u8> = image_to_tensor(filename, dimensions, backend);
+                let tensor_data: Vec<u8> = image_to_tensor(&filename, dimensions, backend);
                 let jump = i * tensor_data.len();
                     for k in 0..tensor_data.len() {
                         tensor_data_batch[k + jump] = tensor_data[k];
                     }
+                if batch_sz - i > 1 {
+                    filename = curr_img.get_next_img_path();
+                }
             }
                 let tensor = wasi_nn::Tensor {
                                 dimensions: dimensions,
@@ -128,7 +132,7 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
                 .unwrap();
             }
 
-            let results = sort_results(&output_buffer, backend, batch_sz);
+            let results = sort_results(&output_buffer, backend, batch_sz, curr_img.out_img_size);
 
             for x in 0..batch_sz {
                 println!("---------------- Image # {} ---------------------------------", x);
@@ -182,13 +186,13 @@ fn create_gba (backend: u8) -> Vec<Vec<u8>> {
 // index for that class (e.g. the probability of class 42 is placed at buffer[42]). Here we convert
 // to a wrapping InferenceResult and sort the results.
 
-fn sort_results(buffer: &[f32], backend: u8, batch_size: usize) -> Vec<Vec<InferenceResult>> {
+fn sort_results(buffer: &[f32], backend: u8, batch_size: usize, out_img_size: usize) -> Vec<Vec<InferenceResult>> {
     let skipval = match backend {
         wasi_nn::GRAPH_ENCODING_OPENVINO => { 1 },
         _ => { 0 }
     };
 
-    let chunks: Vec<&[f32]> =  buffer.chunks(1000).collect();
+    let chunks: Vec<&[f32]> =  buffer.chunks(out_img_size).collect();
     let mut ret_vec: Vec<Vec<InferenceResult>> = vec![];
 
     for i in 0..batch_size {
@@ -205,7 +209,7 @@ fn sort_results(buffer: &[f32], backend: u8, batch_size: usize) -> Vec<Vec<Infer
     ret_vec
 }
 
-fn image_to_tensor(path: String, dimensions: &[u32], backend: u8) -> Vec<u8> {
+fn image_to_tensor(path: &String, dimensions: &[u32], backend: u8) -> Vec<u8> {
     let result: Vec<u8> = match backend {
         wasi_nn::GRAPH_ENCODING_OPENVINO => {
             let pixels = Reader::open(path).unwrap().decode().unwrap();
@@ -357,6 +361,8 @@ impl FromStr for TensorDescription {
 struct CurrImg {
     index: u32,
     max_index: u32,
+    out_img_size: usize,
+    curr_path: Option<String>,
 }
 
 impl CurrImg {
@@ -370,10 +376,12 @@ impl CurrImg {
     }
 
     fn get_next_img_path (&mut self) -> String {
-        let mut img_path: String = format!("{}{}{}", "fixture/images/", self.get_next_index(), ".jpg");
+        let mut img_path: String = format!("{}{}{}", "fixture/images/", self.index, ".jpg");
         while !Path::new(&img_path).exists() {
             img_path = format!("{}{}{}", "fixture/images/", self.get_next_index(), ".jpg");
         }
+        self.curr_path = Some(img_path.clone());
+        self.get_next_index();
         return img_path;
     }
 
