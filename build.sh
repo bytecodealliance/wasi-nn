@@ -148,8 +148,8 @@ else
 
                 for i in $(seq 1 $BENCH_CNT)
                 do
-                    echo "$CPU_INFO,$BACKEND,$MODEL,$THREADS" >> testout_all.csv
-                    echo "$CPU_INFO,$BACKEND,$MODEL,$THREADS" >> testout.csv
+                    echo "$CPU_INFO,$BACKEND,$MODEL,$THREADS,$BATCH_SZ" >> testout_all.csv
+                    echo "$CPU_INFO,$BACKEND,$MODEL,$THREADS,$BATCH_SZ" >> testout.csv
                     echo "USING CORES $CPU_START $current_end - Batch # $i of $BENCH_CNT"
                     taskset --cpu-list $CPU_START-$current_end wasmtime run --dir . --mapdir fixture::$RUST_BUILD_DIR  wasi-nn-example.wasm --wasi-modules=experimental-wasi-nn
                     cp testout_all.csv "$OUT_DIR/testout_all-$BACKEND-$MODEL-$(date +"%Y-%m-%d-%H%M%S%3N").csv"
@@ -163,8 +163,8 @@ else
 
                 done
             else
-                echo "$CPU_INFO,$BACKEND,$MODEL,$THREADS" >> testout_all.csv
-                echo "$CPU_INFO,$BACKEND,$MODEL,$THREADS" >> testout.csv
+                echo "$CPU_INFO,$BACKEND,$MODEL,$THREADS,$BATCH_SZ" >> testout_all.csv
+                echo "$CPU_INFO,$BACKEND,$MODEL,$THREADS,$BATCH_SZ" >> testout.csv
                 wasmtime run --dir . --mapdir fixture::$RUST_BUILD_DIR  wasi-nn-example.wasm --wasi-modules=experimental-wasi-nn
                 # Save results to the out_dir
                 cp testout_all.csv "$OUT_DIR/testout_all-$BACKEND-$MODEL-$(date +"%Y-%m-%d-%H%M%S%3N").csv"
