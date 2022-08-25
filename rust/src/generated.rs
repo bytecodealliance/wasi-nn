@@ -39,6 +39,9 @@ pub type Graph = u32;
 pub type GraphEncoding = u8;
 /// TODO document buffer order
 pub const GRAPH_ENCODING_OPENVINO: GraphEncoding = 0;
+pub const GRAPH_ENCODING_ONNX: GraphEncoding = 1;
+pub const GRAPH_ENCODING_TENSORFLOW: GraphEncoding = 2;
+pub const GRAPH_ENCODING_PYTORCH: GraphEncoding = 3;
 pub type ExecutionTarget = u8;
 pub const EXECUTION_TARGET_CPU: ExecutionTarget = 0;
 pub const EXECUTION_TARGET_GPU: ExecutionTarget = 1;
