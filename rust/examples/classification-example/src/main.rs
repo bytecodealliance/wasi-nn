@@ -1,5 +1,5 @@
-use image::{DynamicImage};
 use image::io::Reader;
+use image::DynamicImage;
 use std::convert::TryInto;
 use std::fs;
 use wasi_nn;
@@ -33,7 +33,7 @@ pub fn main() {
         println!("Read input tensor, size in bytes: {}", tensor_data.len());
         let tensor = wasi_nn::Tensor {
             dimensions: &[1, 3, 224, 224],
-            r#type: wasi_nn::TENSOR_TYPE_F32,
+            type_: wasi_nn::TENSOR_TYPE_F32,
             data: &tensor_data,
         };
         unsafe {
@@ -59,16 +59,16 @@ pub fn main() {
         }
 
         let results = sort_results(&output_buffer);
-        println!(
-            "Found results, sorted top 5: {:?}",
-            &results[..5]
-        );
+        println!("Found results, sorted top 5: {:?}", &results[..5]);
 
         for i in 0..5 {
-            println!("{}.) {}", i + 1, imagenet_classes::IMAGENET_CLASSES[results[i].0]);
+            println!(
+                "{}.) {}",
+                i + 1,
+                imagenet_classes::IMAGENET_CLASSES[results[i].0]
+            );
         }
     }
-
 }
 
 // Sort the buffer of probabilities. The graph places the match probability for each class at the
@@ -95,9 +95,9 @@ fn image_to_tensor(path: String, height: u32, width: u32) -> Vec<u8> {
     let raw_u8_arr: &[u8] = &bgr_img.as_raw()[..];
     // Create an array to hold the f32 value of those pixels
     let bytes_required = raw_u8_arr.len() * 4;
-    let mut u8_f32_arr:Vec<u8> = vec![0; bytes_required];
+    let mut u8_f32_arr: Vec<u8> = vec![0; bytes_required];
 
-    for i in 0..raw_u8_arr.len()  {
+    for i in 0..raw_u8_arr.len() {
         // Read the number as a f32 and break it into u8 bytes
         let u8_f32: f32 = raw_u8_arr[i] as f32;
         let u8_bytes = u8_f32.to_ne_bytes();

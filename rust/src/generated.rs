@@ -2,202 +2,277 @@
 //
 // To regenerate this file run the `crates/witx-bindgen` command
 
+use core::fmt;
 use core::mem::MaybeUninit;
-
-pub use crate::error::Error;
-pub type Result<T, E = Error> = core::result::Result<T, E>;
 pub type BufferSize = u32;
-pub type NnErrno = u16;
-/// No error occurred.
-pub const NN_ERRNO_SUCCESS: NnErrno = 0;
-/// Caller module passed an invalid argument.
-pub const NN_ERRNO_INVALID_ARGUMENT: NnErrno = 1;
-/// Caller module is missing a memory export.
-pub const NN_ERRNO_MISSING_MEMORY: NnErrno = 2;
-/// Device or resource busy.
-pub const NN_ERRNO_BUSY: NnErrno = 3;
+#[repr(transparent)]
+#[derive(Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct NnErrno(u16);
+pub const NN_ERRNO_SUCCESS: NnErrno = NnErrno(0);
+pub const NN_ERRNO_INVALID_ARGUMENT: NnErrno = NnErrno(1);
+pub const NN_ERRNO_INVALID_ENCODING: NnErrno = NnErrno(2);
+pub const NN_ERRNO_MISSING_MEMORY: NnErrno = NnErrno(3);
+pub const NN_ERRNO_BUSY: NnErrno = NnErrno(4);
+pub const NN_ERRNO_RUNTIME_ERROR: NnErrno = NnErrno(5);
+impl NnErrno {
+    pub const fn raw(&self) -> u16 {
+        self.0
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self.0 {
+            0 => "SUCCESS",
+            1 => "INVALID_ARGUMENT",
+            2 => "INVALID_ENCODING",
+            3 => "MISSING_MEMORY",
+            4 => "BUSY",
+            5 => "RUNTIME_ERROR",
+            _ => unsafe { core::hint::unreachable_unchecked() },
+        }
+    }
+    pub fn message(&self) -> &'static str {
+        match self.0 {
+            0 => "",
+            1 => "",
+            2 => "",
+            3 => "",
+            4 => "",
+            5 => "",
+            _ => unsafe { core::hint::unreachable_unchecked() },
+        }
+    }
+}
+impl fmt::Debug for NnErrno {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("NnErrno")
+            .field("code", &self.0)
+            .field("name", &self.name())
+            .field("message", &self.message())
+            .finish()
+    }
+}
+impl fmt::Display for NnErrno {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} (error {})", self.name(), self.0)
+    }
+}
+
+#[cfg(feature = "std")]
+extern crate std;
+#[cfg(feature = "std")]
+impl std::error::Error for NnErrno {}
+
 pub type TensorDimensions<'a> = &'a [u32];
-pub type TensorType = u8;
-pub const TENSOR_TYPE_F16: TensorType = 0;
-pub const TENSOR_TYPE_F32: TensorType = 1;
-pub const TENSOR_TYPE_U8: TensorType = 2;
-pub const TENSOR_TYPE_I32: TensorType = 3;
+#[repr(transparent)]
+#[derive(Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct TensorType(u8);
+pub const TENSOR_TYPE_F16: TensorType = TensorType(0);
+pub const TENSOR_TYPE_F32: TensorType = TensorType(1);
+pub const TENSOR_TYPE_U8: TensorType = TensorType(2);
+pub const TENSOR_TYPE_I32: TensorType = TensorType(3);
+impl TensorType {
+    pub const fn raw(&self) -> u8 {
+        self.0
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self.0 {
+            0 => "F16",
+            1 => "F32",
+            2 => "U8",
+            3 => "I32",
+            _ => unsafe { core::hint::unreachable_unchecked() },
+        }
+    }
+    pub fn message(&self) -> &'static str {
+        match self.0 {
+            0 => "",
+            1 => "",
+            2 => "",
+            3 => "",
+            _ => unsafe { core::hint::unreachable_unchecked() },
+        }
+    }
+}
+impl fmt::Debug for TensorType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TensorType")
+            .field("code", &self.0)
+            .field("name", &self.name())
+            .field("message", &self.message())
+            .finish()
+    }
+}
+
 pub type TensorData<'a> = &'a [u8];
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Tensor<'a> {
-    /// Describe the size of the tensor (e.g. 2x2x2x2 -> [2, 2, 2, 2]). To represent a tensor containing a single value,
-    /// use `[1]` for the tensor dimensions.
     pub dimensions: TensorDimensions<'a>,
-    pub r#type: TensorType,
-    /// Contains the tensor data.
+    pub type_: TensorType,
     pub data: TensorData<'a>,
 }
 pub type GraphBuilder<'a> = &'a [u8];
 pub type GraphBuilderArray<'a> = &'a [GraphBuilder<'a>];
 pub type Graph = u32;
-pub type GraphEncoding = u8;
-/// TODO document buffer order
-pub const GRAPH_ENCODING_OPENVINO: GraphEncoding = 0;
-pub const GRAPH_ENCODING_ONNX: GraphEncoding = 1;
-pub const GRAPH_ENCODING_TENSORFLOW: GraphEncoding = 2;
-pub const GRAPH_ENCODING_PYTORCH: GraphEncoding = 3;
-pub type ExecutionTarget = u8;
-pub const EXECUTION_TARGET_CPU: ExecutionTarget = 0;
-pub const EXECUTION_TARGET_GPU: ExecutionTarget = 1;
-pub const EXECUTION_TARGET_TPU: ExecutionTarget = 2;
+#[repr(transparent)]
+#[derive(Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct GraphEncoding(u8);
+pub const GRAPH_ENCODING_OPENVINO: GraphEncoding = GraphEncoding(0);
+pub const GRAPH_ENCODING_ONNX: GraphEncoding = GraphEncoding(1);
+pub const GRAPH_ENCODING_TENSORFLOW: GraphEncoding = GraphEncoding(2);
+pub const GRAPH_ENCODING_PYTORCH: GraphEncoding = GraphEncoding(3);
+impl GraphEncoding {
+    pub const fn raw(&self) -> u8 {
+        self.0
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self.0 {
+            0 => "OPENVINO",
+            1 => "ONNX",
+            2 => "TENSORFLOW",
+            3 => "PYTORCH",
+            _ => unsafe { core::hint::unreachable_unchecked() },
+        }
+    }
+    pub fn message(&self) -> &'static str {
+        match self.0 {
+            0 => "",
+            1 => "",
+            2 => "",
+            3 => "",
+            _ => unsafe { core::hint::unreachable_unchecked() },
+        }
+    }
+}
+impl fmt::Debug for GraphEncoding {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("GraphEncoding")
+            .field("code", &self.0)
+            .field("name", &self.name())
+            .field("message", &self.message())
+            .finish()
+    }
+}
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct ExecutionTarget(u8);
+pub const EXECUTION_TARGET_CPU: ExecutionTarget = ExecutionTarget(0);
+pub const EXECUTION_TARGET_GPU: ExecutionTarget = ExecutionTarget(1);
+pub const EXECUTION_TARGET_TPU: ExecutionTarget = ExecutionTarget(2);
+impl ExecutionTarget {
+    pub const fn raw(&self) -> u8 {
+        self.0
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self.0 {
+            0 => "CPU",
+            1 => "GPU",
+            2 => "TPU",
+            _ => unsafe { core::hint::unreachable_unchecked() },
+        }
+    }
+    pub fn message(&self) -> &'static str {
+        match self.0 {
+            0 => "",
+            1 => "",
+            2 => "",
+            _ => unsafe { core::hint::unreachable_unchecked() },
+        }
+    }
+}
+impl fmt::Debug for ExecutionTarget {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ExecutionTarget")
+            .field("code", &self.0)
+            .field("name", &self.name())
+            .field("message", &self.message())
+            .finish()
+    }
+}
+
 pub type GraphExecutionContext = u32;
-/// Load an opaque sequence of bytes to use for inference.
-///
-/// This allows runtime implementations to support multiple graph encoding formats. For unsupported graph encodings,
-/// return `errno::inval`.
-///
-/// ## Parameters
-///
-/// * `builder` - The bytes necessary to build the graph.
-/// * `encoding` - The encoding of the graph.
-/// * `target` - Where to execute the graph.
 pub unsafe fn load(
-    builder: GraphBuilderArray,
+    builder: GraphBuilderArray<'_>,
     encoding: GraphEncoding,
     target: ExecutionTarget,
-) -> Result<Graph> {
-    let mut graph = MaybeUninit::uninit();
-    let rc = wasi_ephemeral_nn::load(
-        builder.as_ptr(),
-        builder.len(),
-        encoding,
-        target,
-        graph.as_mut_ptr(),
+) -> Result<Graph, NnErrno> {
+    let mut rp0 = MaybeUninit::<Graph>::uninit();
+    let ret = wasi_ephemeral_nn::load(
+        builder.as_ptr() as i32,
+        builder.len() as i32,
+        encoding.0 as i32,
+        target.0 as i32,
+        rp0.as_mut_ptr() as i32,
     );
-    if let Some(err) = Error::from_raw_error(rc) {
-        Err(err)
-    } else {
-        Ok(graph.assume_init())
+    match ret {
+        0 => Ok(core::ptr::read(rp0.as_mut_ptr() as i32 as *const Graph)),
+        _ => Err(NnErrno(ret as u16)),
     }
 }
 
-/// TODO Functions like `describe_graph_inputs` and `describe_graph_outputs` (returning
-/// an array of `$tensor_description`s) might be useful for introspecting the graph but are not yet included here.
-/// Create an execution instance of a loaded graph.
-/// TODO this may need to accept flags that might affect the compilation or execution of the graph.
-pub unsafe fn init_execution_context(graph: Graph) -> Result<GraphExecutionContext> {
-    let mut context = MaybeUninit::uninit();
-    let rc = wasi_ephemeral_nn::init_execution_context(graph, context.as_mut_ptr());
-    if let Some(err) = Error::from_raw_error(rc) {
-        Err(err)
-    } else {
-        Ok(context.assume_init())
+pub unsafe fn init_execution_context(graph: Graph) -> Result<GraphExecutionContext, NnErrno> {
+    let mut rp0 = MaybeUninit::<GraphExecutionContext>::uninit();
+    let ret = wasi_ephemeral_nn::init_execution_context(graph as i32, rp0.as_mut_ptr() as i32);
+    match ret {
+        0 => Ok(core::ptr::read(
+            rp0.as_mut_ptr() as i32 as *const GraphExecutionContext
+        )),
+        _ => Err(NnErrno(ret as u16)),
     }
 }
 
-/// Define the inputs to use for inference.
-///
-/// This should return an $nn_errno (TODO define) if the input tensor does not match the expected dimensions and type.
-///
-/// ## Parameters
-///
-/// * `index` - The index of the input to change.
-/// * `tensor` - The tensor to set as the input.
-pub unsafe fn set_input(context: GraphExecutionContext, index: u32, tensor: Tensor) -> Result<()> {
-    let rc = wasi_ephemeral_nn::set_input(context, index, &tensor as *const _ as *mut _);
-    if let Some(err) = Error::from_raw_error(rc) {
-        Err(err)
-    } else {
-        Ok(())
+pub unsafe fn set_input(
+    context: GraphExecutionContext,
+    index: u32,
+    tensor: Tensor,
+) -> Result<(), NnErrno> {
+    let ret =
+        wasi_ephemeral_nn::set_input(context as i32, index as i32, &tensor as *const _ as i32);
+    match ret {
+        0 => Ok(()),
+        _ => Err(NnErrno(ret as u16)),
     }
 }
 
-/// Extract the outputs after inference.
-///
-/// This should return an $nn_errno (TODO define) if the inference has not yet run.
-///
-/// ## Parameters
-///
-/// * `index` - The index of the output to retrieve.
-/// * `out_buffer` - An out parameter to which to copy the tensor data. The caller is responsible for allocating enough memory for
-///   the tensor data or an error will be returned. Currently there is no dynamic way to extract the additional
-///   tensor metadata (i.e. dimension, element type) but this should be added at some point.
-///
-/// ## Return
-///
-/// * `bytes_written` - The number of bytes of tensor data written to the `$out_buffer`.
 pub unsafe fn get_output(
     context: GraphExecutionContext,
     index: u32,
     out_buffer: *mut u8,
     out_buffer_max_size: BufferSize,
-) -> Result<BufferSize> {
-    let mut bytes_written = MaybeUninit::uninit();
-    let rc = wasi_ephemeral_nn::get_output(
-        context,
-        index,
-        out_buffer,
-        out_buffer_max_size,
-        bytes_written.as_mut_ptr(),
+) -> Result<BufferSize, NnErrno> {
+    let mut rp0 = MaybeUninit::<BufferSize>::uninit();
+    let ret = wasi_ephemeral_nn::get_output(
+        context as i32,
+        index as i32,
+        out_buffer as i32,
+        out_buffer_max_size as i32,
+        rp0.as_mut_ptr() as i32,
     );
-    if let Some(err) = Error::from_raw_error(rc) {
-        Err(err)
-    } else {
-        Ok(bytes_written.assume_init())
+    match ret {
+        0 => Ok(core::ptr::read(rp0.as_mut_ptr() as i32 as *const BufferSize)),
+        _ => Err(NnErrno(ret as u16)),
     }
 }
 
-/// Compute the inference on the given inputs (see `set_input`).
-///
-/// This should return an $nn_errno (TODO define) if the inputs are not all defined.
-pub unsafe fn compute(context: GraphExecutionContext) -> Result<()> {
-    let rc = wasi_ephemeral_nn::compute(context);
-    if let Some(err) = Error::from_raw_error(rc) {
-        Err(err)
-    } else {
-        Ok(())
+pub unsafe fn compute(context: GraphExecutionContext) -> Result<(), NnErrno> {
+    let ret = wasi_ephemeral_nn::compute(context as i32);
+    match ret {
+        0 => Ok(()),
+        _ => Err(NnErrno(ret as u16)),
     }
 }
 
-#[allow(improper_ctypes)]
 pub mod wasi_ephemeral_nn {
-    use super::*;
     #[link(wasm_import_module = "wasi_ephemeral_nn")]
     extern "C" {
-        /// Load an opaque sequence of bytes to use for inference.
-        ///
-        /// This allows runtime implementations to support multiple graph encoding formats. For unsupported graph encodings,
-        /// return `errno::inval`.
-        pub fn load(
-            builder_ptr: *const GraphBuilder,
-            builder_len: usize,
-            encoding: GraphEncoding,
-            target: ExecutionTarget,
-            graph: *mut Graph,
-        ) -> NnErrno;
-        /// TODO Functions like `describe_graph_inputs` and `describe_graph_outputs` (returning
-        /// an array of `$tensor_description`s) might be useful for introspecting the graph but are not yet included here.
-        /// Create an execution instance of a loaded graph.
-        /// TODO this may need to accept flags that might affect the compilation or execution of the graph.
-        pub fn init_execution_context(graph: Graph, context: *mut GraphExecutionContext)
-            -> NnErrno;
-        /// Define the inputs to use for inference.
-        ///
-        /// This should return an $nn_errno (TODO define) if the input tensor does not match the expected dimensions and type.
-        pub fn set_input(
-            context: GraphExecutionContext,
-            index: u32,
-            tensor: *mut Tensor,
-        ) -> NnErrno;
-        /// Extract the outputs after inference.
-        ///
-        /// This should return an $nn_errno (TODO define) if the inference has not yet run.
-        pub fn get_output(
-            context: GraphExecutionContext,
-            index: u32,
-            out_buffer: *mut u8,
-            out_buffer_max_size: BufferSize,
-            bytes_written: *mut BufferSize,
-        ) -> NnErrno;
-        /// Compute the inference on the given inputs (see `set_input`).
-        ///
-        /// This should return an $nn_errno (TODO define) if the inputs are not all defined.
-        pub fn compute(context: GraphExecutionContext) -> NnErrno;
+        pub fn load(arg0: i32, arg1: i32, arg2: i32, arg3: i32, arg4: i32) -> i32;
+        pub fn init_execution_context(arg0: i32, arg1: i32) -> i32;
+        pub fn set_input(arg0: i32, arg1: i32, arg2: i32) -> i32;
+        pub fn get_output(arg0: i32, arg1: i32, arg2: i32, arg3: i32, arg4: i32) -> i32;
+        pub fn compute(arg0: i32) -> i32;
     }
 }
