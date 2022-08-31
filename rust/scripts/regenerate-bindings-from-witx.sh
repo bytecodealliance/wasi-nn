@@ -11,9 +11,9 @@ set -e
 # The following environment variables can be overriden from the command line. Note that `*_REVISION`
 # variables accept a commit hash, a branch, a tag, etc.
 WITX_BINDGEN_REPOSITORY=${WITX_BINDGEN_REPOSITORY:-https://github.com/bytecodealliance/wasi}
-WITX_BINDGEN_REVISION=${WITX_BINDGEN_REVISION:-9ec04a7d8ebb1bbb9e3291503425cee1ec38a560}
+WITX_BINDGEN_REVISION=${WITX_BINDGEN_REVISION:-main}
 WASI_NN_RAW_URL=${WASI_NN_RAW_URL:-https://raw.githubusercontent.com/WebAssembly/wasi-nn}
-WASI_NN_REVISION=${WASI_NN_REVISION:-e5e1a6c31f424c7cd63026cd270e9746775675a0}
+WASI_NN_REVISION=${WASI_NN_REVISION:-main}
 
 echo "=== Retrieve and build 'witx-bindgen' ==="
 TMP_DIR=$(mktemp -d /tmp/regenerate-bindings.XXXXXX)
