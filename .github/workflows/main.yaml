@@ -56,3 +56,16 @@ jobs:
           echo Publish crates.io dryrun
           cd rust
           cargo publish --dry-run
+
+  check_bindings:
+    name: Regenerate Rust bindings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          lfs: true
+      - name: Regenerate bindings
+        run: rust/scripts/regenerate-bindings-from-witx.sh
+      - name: Verify no changes
+        run: git diff --ignore-submodules --no-ext-diff --name-only --exit-code
