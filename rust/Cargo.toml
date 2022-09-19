@@ -11,6 +11,10 @@ readme = "README.md"
 edition = "2018"
 publish = true
 
+exclude = [
+    "examples",
+]
+
 [dependencies]
 
 [workspace]
