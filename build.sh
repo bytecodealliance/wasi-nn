@@ -27,7 +27,7 @@ else
                 cargo build --release --target=wasm32-wasi
                 mkdir -p $WASI_NN_DIR/rust/examples/classification-example/build
                 RUST_BUILD_DIR=$(realpath $WASI_NN_DIR/rust/examples/classification-example/build/)
-                cp -rn images $RUST_BUILD_DIR
+                cp -rn examples/images $RUST_BUILD_DIR
                 pushd examples/classification-example
                 cargo build --release --target=wasm32-wasi
                 cp target/wasm32-wasi/release/wasi-nn-example.wasm $RUST_BUILD_DIR
