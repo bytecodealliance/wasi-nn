@@ -48,7 +48,7 @@ pub fn main() {
 }
 
 fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffer: Vec<f32>, runs: u32, mut curr_img: CurrImg) {
-    println!("** Using the {} backend **", backend);
+    println!("** Using the {:?} backend **", backend);
     println!("Tensor shape / size is {:?}", dimensions);
     let init_time = Instant::now();
     let mut id_secs: Duration;
@@ -100,7 +100,7 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
             }
                 let tensor = wasi_nn::Tensor {
                                 dimensions: dimensions,
-                                r#type: wasi_nn::TENSOR_TYPE_F32,
+                                type_: wasi_nn::TENSOR_TYPE_F32,
                                 data: &tensor_data_batch,
                             };
                 unsafe {
@@ -152,11 +152,13 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
                 finaltime += totaltime;
 
             }
+
+            filename = curr_img.get_next_img_path();
         }
     print_csv(&final_results, "testout".to_string(), finaltime);
 }
 
-fn create_gba (backend: u8) -> Vec<Vec<u8>> {
+fn create_gba (backend: wasi_nn::GraphEncoding) -> Vec<Vec<u8>> {
     let result: Vec<Vec<u8>> = match backend {
         wasi_nn::GRAPH_ENCODING_OPENVINO => {
             let xml = fs::read_to_string("fixture/model.xml").unwrap();
@@ -174,7 +176,7 @@ fn create_gba (backend: u8) -> Vec<Vec<u8>> {
                         ])
         },
         _ => {
-            println!("Unknown backend {}", backend);
+            println!("Unknown backend {:?}", backend);
             vec![]
         }
 
@@ -186,7 +188,7 @@ fn create_gba (backend: u8) -> Vec<Vec<u8>> {
 // index for that class (e.g. the probability of class 42 is placed at buffer[42]). Here we convert
 // to a wrapping InferenceResult and sort the results.
 
-fn sort_results(buffer: &[f32], backend: u8, batch_size: usize, out_img_size: usize) -> Vec<Vec<InferenceResult>> {
+fn sort_results(buffer: &[f32], backend: wasi_nn::GraphEncoding, batch_size: usize, out_img_size: usize) -> Vec<Vec<InferenceResult>> {
     let skipval = match backend {
         wasi_nn::GRAPH_ENCODING_OPENVINO => { 1 },
         _ => { 0 }
@@ -209,7 +211,7 @@ fn sort_results(buffer: &[f32], backend: u8, batch_size: usize, out_img_size: us
     ret_vec
 }
 
-fn image_to_tensor(path: &String, dimensions: &[u32], backend: u8) -> Vec<u8> {
+fn image_to_tensor(path: &String, dimensions: &[u32], backend: wasi_nn::GraphEncoding) -> Vec<u8> {
     let result: Vec<u8> = match backend {
         wasi_nn::GRAPH_ENCODING_OPENVINO => {
             let pixels = Reader::open(path).unwrap().decode().unwrap();
@@ -248,7 +250,7 @@ fn image_to_tensor(path: &String, dimensions: &[u32], backend: u8) -> Vec<u8> {
             u8_f32_arr
         },
         _ => {
-            println!("Unknown backend {}", backend);
+            println!("Unknown backend {:?}", backend);
             vec![]
         }
     };

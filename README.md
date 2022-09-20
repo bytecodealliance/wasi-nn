@@ -35,10 +35,10 @@ WebAssembly, and run it in a WebAssembly runtime that supports the [wasi-nn] pro
 
 ### Use
 
- - In Rust, download the [crate from crates.io][crates.io] by adding `wasi-nn = "0.1"` as a Cargo
+ - In Rust, download the [crate from crates.io][crates.io] by adding `wasi-nn = "0.2.1"` as a Cargo
    dependency; more information in the [Rust README].
  - In AssemblyScript, download the [package from npmjs.com][npmjs.com] by adding `"as-wasi-nn":
-   "^0.1"` as an NPM dependency; more information in the [AssemblyScript README].
+   "^0.2.1"` as an NPM dependency; more information in the [AssemblyScript README].
  - When you call wasmtime, you'll need to pass the flag `--wasi-modules=experimental-wasi-nn` to enable the use use of wasi-nn.
 
 [crates.io]: https://crates.io/crates/wasi-nn
