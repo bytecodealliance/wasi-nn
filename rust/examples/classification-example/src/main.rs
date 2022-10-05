@@ -28,7 +28,11 @@ pub fn main() {
     // `fixture/frozen_inference_graph.xml`).
     for i in 0..5 {
         let filename: String = format!("{}{}{}", "fixture/images/", i, ".jpg");
-        let tensor_data = convert_image(&filename, 224, 224, TensorType::F32, ColorOrder::BGR);
+        // Convert the image. If it fails just exit
+        let tensor_data = convert_image_to_bytes(&filename, 224, 224, TensorType::F32, ColorOrder::BGR).or_else(|e| {
+            Err(e)
+        }).unwrap();
+
         println!("Read input tensor, size in bytes: {}", tensor_data.len());
         let tensor = wasi_nn::Tensor {
             dimensions: &[1, 3, 224, 224],
