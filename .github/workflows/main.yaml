@@ -20,7 +20,7 @@ jobs:
 
       # Install OpenVINO
       - name: Install OpenVINO
-        uses: ./.github/actions/install-openvino
+        uses: abrown/install-openvino-action@v3
 
       - name: Build Wasmtime + wasi-nn
         run: |
