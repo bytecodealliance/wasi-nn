@@ -49,7 +49,7 @@ WebAssembly, and run it in a WebAssembly runtime that supports the [wasi-nn] pro
 ### Examples
 
 This repository includes examples of using these bindings. See the [Rust example] and
-[AssemblyScript example] to walk through an end-to-end image classification using an AlexNet model. Currently the example uses OpenVino as the backend. If you are running Ubuntu, you can simply run the script to install the supported version`.github/actions/install-openvino/install.sh`. Otherwise you'll need to visit the [Installation Guides] and follow the instructions for your OS. The version of OpenVino currently supported is openvino_2020.4.287.
+[AssemblyScript example] to walk through an end-to-end image classification using an AlexNet model. Currently the example uses OpenVino as the backend. If you are running Ubuntu, you can simply run the script to install the supported version`.github/actions/install-openvino/install.sh`. Otherwise you'll need to visit the [Installation Guides] and follow the instructions for your OS. The version of OpenVino currently supported is openvino_2022.1.0.643.
 
 Once you have OpenVino installed, run them with:
  - `./build.sh rust` runs the [Rust example]
