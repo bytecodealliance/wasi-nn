@@ -76,7 +76,7 @@ fn save_bytes(arr: &[u8], tt: TensorType) -> Vec<u8> {
 fn get_bytes_per_pixel(precision: TensorType) -> usize {
     match precision {
         TensorType::F32 | TensorType::I32 => 4,
-        TensorType::F16 => 2,
+        TensorType::F16 => 4,   // Currently Rust doesn't support F16 natively, so we use f32.
         TensorType::U8 => 1,
     }
 }
