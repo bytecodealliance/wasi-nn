@@ -1,5 +1,4 @@
-use image::{DynamicImage};
-use image::io::Reader;
+use image2tensor::*;
 use std::io::Write;
 use std::{convert::TryInto, str::FromStr};
 use std::fs;
@@ -27,7 +26,7 @@ pub fn main() {
             println!("##################################################################");
             let out_sz:usize = curr_img.out_img_size * batch_sz;
 
-            execute(wasi_nn::GRAPH_ENCODING_OPENVINO, &ov_dim, vec![0f32; out_sz], runs, curr_img);
+            execute(wasi_nn::GRAPH_ENCODING_OPENVINO, &ov_dim, vec![0f32; out_sz], TensorType::F32, ColorOrder::BGR, runs, curr_img);
 
         },
         "tensorflow" => {
@@ -38,7 +37,7 @@ pub fn main() {
             println!("Running {} benchmark using:\nTensorflow\n{} model\nlooping for {} times...\n",env!("BUILD_TYPE"), env!("MODEL"), runs);
             println!("#####################################################################");
             let out_sz:usize = curr_img.out_img_size * batch_sz;
-            execute(wasi_nn::GRAPH_ENCODING_TENSORFLOW, &tf_dim, vec![0f32; out_sz], runs, curr_img);
+            execute(wasi_nn::GRAPH_ENCODING_TENSORFLOW, &tf_dim, vec![0f32; out_sz], TensorType::F32, ColorOrder::RGB, runs, curr_img);
         },
         _ => {
             println!("Unknown backend, exiting...");
@@ -47,7 +46,7 @@ pub fn main() {
     }
 }
 
-fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffer: Vec<f32>, runs: u32, mut curr_img: CurrImg) {
+fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffer: Vec<f32>, precision: TensorType, color_order: ColorOrder, runs: u32, mut curr_img: CurrImg) {
     println!("** Using the {:?} backend **", backend);
     println!("Tensor shape / size is {:?}", dimensions);
     let init_time = Instant::now();
@@ -83,13 +82,17 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
 
     // Calculate the size of the buffer needed for a single image.
     let mut filename = curr_img.get_next_img_path();
-    let td: Vec<u8> = image_to_tensor(&filename, dimensions, backend);
+    let td = convert_image_to_bytes(&filename, dimensions[2], dimensions[2], precision, color_order).or_else(|e| {
+        Err(e)
+    }).unwrap();
     let mut tensor_data_batch: Vec<u8> = vec![0;td.len() * batch_sz];
     let mut totaltime: f64 = 0.0;
 
         while finished_runs < runs {
             for i in 0..batch_sz {
-                let tensor_data: Vec<u8> = image_to_tensor(&filename, dimensions, backend);
+                let tensor_data = convert_image_to_bytes(&filename, dimensions[2], dimensions[2], precision, color_order).or_else(|e| {
+                    Err(e)
+                }).unwrap();
                 let jump = i * tensor_data.len();
                     for k in 0..tensor_data.len() {
                         tensor_data_batch[k + jump] = tensor_data[k];
@@ -114,8 +117,10 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
             }
 
             id_secs = id_time.elapsed();
-            totaltime += id_secs.as_fractional_millis();
-            all_results.push(id_secs.as_fractional_millis());
+            if id_secs.as_fractional_millis() < 100.0 {
+                totaltime += id_secs.as_fractional_millis();
+                all_results.push(id_secs.as_fractional_millis());
+            }
 
 
 
@@ -171,8 +176,8 @@ fn create_gba (backend: wasi_nn::GraphEncoding) -> Vec<Vec<u8>> {
         wasi_nn::GRAPH_ENCODING_TENSORFLOW => {
             let model_path: String = env!("MAPDIR").to_string();
             Vec::from([model_path.into_bytes(),
-                        "signature,serving_default".to_owned().into_bytes(),
-                        "tag,serve".to_owned().into_bytes(),
+                        "serving_default".to_owned().into_bytes(),
+                        "serve".to_owned().into_bytes(),
                         ])
         },
         _ => {
@@ -211,56 +216,9 @@ fn sort_results(buffer: &[f32], backend: wasi_nn::GraphEncoding, batch_size: usi
     ret_vec
 }
 
-fn image_to_tensor(path: &String, dimensions: &[u32], backend: wasi_nn::GraphEncoding) -> Vec<u8> {
-    let result: Vec<u8> = match backend {
-        wasi_nn::GRAPH_ENCODING_OPENVINO => {
-            let pixels = Reader::open(path).unwrap().decode().unwrap();
-            let dyn_img: DynamicImage = pixels.resize_exact(dimensions[2], dimensions[3], image::imageops::Triangle);
-            let bgr_img = dyn_img.to_bgr8();
-            // Get an array of the pixel values
-            let raw_u8_arr: &[u8] = &bgr_img.as_raw()[..];
-            // Create an array to hold the f32 value of those pixels
-            let bytes_required = raw_u8_arr.len() * 4;
-            let mut u8_f32_arr:Vec<u8> = vec![0; bytes_required];
-
-            for i in 0..raw_u8_arr.len()  {
-                // Read the number as a f32 and break it into u8 bytes
-                let u8_f32: f32 = raw_u8_arr[i] as f32;
-                let u8_bytes = u8_f32.to_ne_bytes();
-
-                for j in 0..4 {
-                    u8_f32_arr[(i * 4) + j] = u8_bytes[j];
-                }
-            }
-            u8_f32_arr
-        },
-        wasi_nn::GRAPH_ENCODING_TENSORFLOW => {
-            let pixels = Reader::open(path).unwrap().decode().unwrap();
-            let dyn_img: DynamicImage = pixels.resize_exact(dimensions[1], dimensions[2], image::imageops::Triangle);
-            let bgr_img = dyn_img.to_rgb8();
-            // Get an array of the pixel values
-            let raw_u8_arr: &[u8] = &bgr_img.as_raw()[..];
-            // Create an array to hold the f32 value of those pixels
-            let mut u8_f32_arr:Vec<u8> = vec![0; raw_u8_arr.len()];
-
-            for i in 0..raw_u8_arr.len() {
-                u8_f32_arr[i] = raw_u8_arr[i];
-            }
-
-            u8_f32_arr
-        },
-        _ => {
-            println!("Unknown backend {:?}", backend);
-            vec![]
-        }
-    };
-    return result;
-}
-
-
-
 fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
     let runs: u32 = env!("RUNS").parse().unwrap();
+    let mut _wr;
 
     if all_results.len() > 5 {
         println!(
@@ -284,12 +242,12 @@ fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
 
     let filename_sum = filename.clone() + ".csv";
     let filename_all = filename.clone() + "_all.csv";
-    let mut outfile_sum = fs::OpenOptions::new()
+    let outfile_sum = fs::OpenOptions::new()
         .write(true)
         .append(true)
         .open(filename_sum.clone());
 
-    let mut outfile_all =fs::OpenOptions::new()
+    let outfile_all =fs::OpenOptions::new()
         .write(true)
         .append(true)
         .open(filename_all.clone());
@@ -297,9 +255,9 @@ fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
     if outfile_all.is_ok() {
         let mut outfile_all = outfile_all.unwrap();
             let cvs_all_str = String::from("run,time\n");
-            outfile_all.write_all(cvs_all_str.as_bytes());
+            _wr = outfile_all.write_all(cvs_all_str.as_bytes());
         for i in 0..all_results.len() {
-            outfile_all.write_all(format!("{},{}\n", i, all_results[i]).as_bytes());
+            _wr = outfile_all.write_all(format!("{},{}\n", i, all_results[i]).as_bytes());
         }
     } else {
         println!("Couldn't save CSV data to {}", filename_all);
@@ -308,9 +266,9 @@ fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
     if outfile_sum.is_ok() {
         let mut outfile_sum = outfile_sum.unwrap();
         let cvs_sum_str = String::from("runs,total_time,avg_time,std_dev\n");
-        outfile_sum.write_all(cvs_sum_str.as_bytes());
+        _wr = outfile_sum.write_all(cvs_sum_str.as_bytes());
 
-        outfile_sum.write_all(format!("{},{},{},{}\n", runs, totaltime, res_mean, res_dev).as_bytes());
+        _wr = outfile_sum.write_all(format!("{},{},{},{}\n", runs, totaltime, res_mean, res_dev).as_bytes());
     } else {
         println!("Couldn't save CSV data to {}", filename_sum);
     }
