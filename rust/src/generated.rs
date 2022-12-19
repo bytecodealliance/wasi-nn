@@ -279,3 +279,42 @@ pub mod wasi_ephemeral_nn {
         pub fn compute(arg0: i32) -> i32;
     }
 }
+
+pub fn backend_init(
+    builder: GraphBuilderArray<'_>,
+    encoding: GraphEncoding,
+    target: ExecutionTarget,) -> Result<GraphExecutionContext, NnErrno> {
+    unsafe {
+        init_execution_context(load(builder, encoding, target)?)
+    }
+}
+
+pub fn set_input_tensor(
+    context: GraphExecutionContext,
+    index: u32,
+    dimensions: &[u32],
+    ttype: TensorType,
+    tdata: TensorData,
+) -> Result<(), NnErrno> {
+    let tensor = Tensor {
+        dimensions: dimensions,
+        type_: ttype,
+        data: &tdata,
+    };
+
+    unsafe {
+        set_input(context, index, tensor)
+    }
+}
+
+pub fn execute(
+    context: GraphExecutionContext,
+    index: u32,
+    out_buffer: *mut u8,
+    out_buffer_max_size: BufferSize,
+) -> Result<BufferSize, NnErrno> {
+    unsafe {
+        compute(context)?;
+        get_output(context, index, out_buffer, out_buffer_max_size)
+    }
+}

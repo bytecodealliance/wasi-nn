@@ -11,17 +11,12 @@ pub fn main() {
     let weights = fs::read("fixture/mobilenet.bin").unwrap();
     println!("Read graph weights, size in bytes: {}", weights.len());
 
-    let graph = unsafe {
-        wasi_nn::load(
-            &[&xml.into_bytes(), &weights],
-            wasi_nn::GRAPH_ENCODING_OPENVINO,
-            wasi_nn::EXECUTION_TARGET_CPU,
-        )
-        .unwrap()
-    };
-    println!("Loaded graph into wasi-nn with ID: {}", graph);
+    let context = wasi_nn::backend_init(
+                    &[&xml.into_bytes(), &weights],
+                    wasi_nn::GRAPH_ENCODING_OPENVINO,
+                    wasi_nn::EXECUTION_TARGET_CPU,
+    ).unwrap();
 
-    let context = unsafe { wasi_nn::init_execution_context(graph).unwrap() };
     println!("Created wasi-nn execution context with ID: {}", context);
 
     // Load a tensor that precisely matches the graph input tensor (see
@@ -34,32 +29,25 @@ pub fn main() {
         }).unwrap();
 
         println!("Read input tensor, size in bytes: {}", tensor_data.len());
-        let tensor = wasi_nn::Tensor {
-            dimensions: &[1, 3, 224, 224],
-            type_: wasi_nn::TENSOR_TYPE_F32,
-            data: &tensor_data,
-        };
-        unsafe {
-            wasi_nn::set_input(context, 0, tensor).unwrap();
-        }
 
-        // Execute the inference.
-        unsafe {
-            wasi_nn::compute(context).unwrap();
-        }
-        println!("Executed graph inference");
+        wasi_nn::set_input_tensor(
+            context,
+            0,
+            &[1, 3, 224, 224],
+            wasi_nn::TENSOR_TYPE_F32,
+            &tensor_data,
+        ).unwrap();
 
-        // Retrieve the output.
+        // Execute the inference and get the output.
         let mut output_buffer = vec![0f32; 1001];
-        unsafe {
-            wasi_nn::get_output(
-                context,
-                0,
-                &mut output_buffer[..] as *mut [f32] as *mut u8,
-                (output_buffer.len() * 4).try_into().unwrap(),
-            )
-            .unwrap();
-        }
+        let _written = wasi_nn::execute(
+            context,
+            0,
+            &mut output_buffer[..] as *mut [f32] as *mut u8,
+            (output_buffer.len() * 4).try_into().unwrap(),
+        ).unwrap();
+
+        println!("Executed graph inference");
 
         let results = sort_results(&output_buffer);
         println!("Found results, sorted top 5: {:?}", &results[..5]);
