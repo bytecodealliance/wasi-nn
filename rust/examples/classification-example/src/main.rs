@@ -117,12 +117,8 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
             }
 
             id_secs = id_time.elapsed();
-            if id_secs.as_fractional_millis() < 100.0 {
-                totaltime += id_secs.as_fractional_millis();
-                all_results.push(id_secs.as_fractional_millis());
-            }
-
-
+            totaltime += id_secs.as_fractional_millis();
+            all_results.push(id_secs.as_fractional_millis());
 
             println!("############################################################");
             println!("Image results run {}", finished_runs);
@@ -160,7 +156,7 @@ fn execute(backend: wasi_nn::GraphEncoding, dimensions: &[u32], mut output_buffe
 
             filename = curr_img.get_next_img_path();
         }
-    print_csv(&final_results, "testout".to_string(), finaltime);
+    print_csv(&final_results, dimensions[0], "testout".to_string(), finaltime);
 }
 
 fn create_gba (backend: wasi_nn::GraphEncoding) -> Vec<Vec<u8>> {
@@ -216,14 +212,15 @@ fn sort_results(buffer: &[f32], backend: wasi_nn::GraphEncoding, batch_size: usi
     ret_vec
 }
 
-fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
+fn print_csv(all_results: &Vec<f64>, batch_sz: u32, filename: String, totaltime: f64) {
     let runs: u32 = env!("RUNS").parse().unwrap();
     let mut _wr;
 
-    if all_results.len() > 5 {
+    if all_results.len() > 6 {
         println!(
                 "** First 5 inference times **\n {:?}",
-                &all_results[..5]
+                // NOTE: The first time is always super long for some reason, so don't include it.
+                &all_results[1..6]
             );
     } else {
         println!("** Inference times **\n{:?}", all_results);
@@ -231,12 +228,14 @@ fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
 
     println!("\n** Performance results **");
     println!("{} runs took {}ms total",runs, totaltime);
-    let res_mean = mean(&all_results);
+
     let mut res_dev: f64 = 0.0;
+    let mut res_mean: f64 = 0.0;
 
     if all_results.len() >1 {
-        res_dev = standard_deviation(&all_results, Some(res_mean));
-        println!("AVG = {:?}", res_mean);
+        res_mean = mean(&all_results[1..]);
+        res_dev = standard_deviation(&all_results[1..], Some(res_mean));
+        println!("AVG = {:?}", res_mean / batch_sz as f64);
         println!("STD_DEV = {:?}", res_dev);
     }
 
@@ -267,7 +266,6 @@ fn print_csv(all_results: &Vec<f64>, filename: String, totaltime: f64) {
         let mut outfile_sum = outfile_sum.unwrap();
         let cvs_sum_str = String::from("runs,total_time,avg_time,std_dev\n");
         _wr = outfile_sum.write_all(cvs_sum_str.as_bytes());
-
         _wr = outfile_sum.write_all(format!("{},{},{},{}\n", runs, totaltime, res_mean, res_dev).as_bytes());
     } else {
         println!("Couldn't save CSV data to {}", filename_sum);

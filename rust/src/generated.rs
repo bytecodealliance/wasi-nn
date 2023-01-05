@@ -122,6 +122,7 @@ pub const GRAPH_ENCODING_OPENVINO: GraphEncoding = GraphEncoding(0);
 pub const GRAPH_ENCODING_ONNX: GraphEncoding = GraphEncoding(1);
 pub const GRAPH_ENCODING_TENSORFLOW: GraphEncoding = GraphEncoding(2);
 pub const GRAPH_ENCODING_PYTORCH: GraphEncoding = GraphEncoding(3);
+pub const GRAPH_ENCODING_TENSORFLOWLITE: GraphEncoding = GraphEncoding(4);
 impl GraphEncoding {
     pub const fn raw(&self) -> u8 {
         self.0
@@ -133,6 +134,7 @@ impl GraphEncoding {
             1 => "ONNX",
             2 => "TENSORFLOW",
             3 => "PYTORCH",
+            4 => "TENSORFLOWLITE",
             _ => unsafe { core::hint::unreachable_unchecked() },
         }
     }
@@ -142,6 +144,7 @@ impl GraphEncoding {
             1 => "",
             2 => "",
             3 => "",
+            4 => "",
             _ => unsafe { core::hint::unreachable_unchecked() },
         }
     }
