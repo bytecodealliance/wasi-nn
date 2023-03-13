@@ -24,7 +24,7 @@ export class Graph {
     /**
      * Create a `Graph` from one or more binary blobs.
      * @param builder the binary blobs that make up the graph
-     * @param encoding the framework required for 
+     * @param encoding the framework required for
      * @param target the device on which to run the graph
      * @returns an initialized `Graph`
      */
@@ -46,7 +46,7 @@ export class Graph {
 
     /**
      * Create an execution context for performing inference requests. This indirection separates the
-     * "graph loading" phase (potentially expensive) from the "graph execution" phase. 
+     * "graph loading" phase (potentially expensive) from the "graph execution" phase.
      * @returns an `ExecutionContext`
      */
     initExecutionContext(): ExecutionContext {
@@ -64,6 +64,10 @@ export class Graph {
  */
 export const enum GraphEncoding {
     openvino = 0,
+    onnx = 1,
+    tensorflow = 2,
+    pytorch = 3,
+    tensorflowlite = 4
 }
 
 /**
@@ -152,7 +156,7 @@ export class Tensor {
 
     /**
      * Convert data to an `ArrayBuffer` for using data views.
-     * @returns an ArrayBuffer with a copy of the bytes in `this.data` 
+     * @returns an ArrayBuffer with a copy of the bytes in `this.data`
      */
     toArrayBuffer(): ArrayBuffer {
         const buffer = new ArrayBuffer(this.data.length);
