@@ -35,11 +35,12 @@ WebAssembly, and run it in a WebAssembly runtime that supports the [wasi-nn] pro
 
 ### Use
 
- - In Rust, download the [crate from crates.io][crates.io] by adding `wasi-nn = "0.2.1"` as a Cargo
+ - In Rust, download the [crate from crates.io][crates.io] by adding `wasi-nn = "0.3.0"` as a Cargo
    dependency; more information in the [Rust README].
  - In AssemblyScript, download the [package from npmjs.com][npmjs.com] by adding `"as-wasi-nn":
-   "^0.2.1"` as an NPM dependency; more information in the [AssemblyScript README].
- - When you call wasmtime, you'll need to pass the flag `--wasi-modules=experimental-wasi-nn` to enable the use use of wasi-nn.
+   "^0.3.0"` as an NPM dependency; more information in the [AssemblyScript README].
+ - When you call wasmtime, you'll need to pass the flag `--wasi-modules=experimental-wasi-nn` to
+   enable the use use of wasi-nn.
 
 [crates.io]: https://crates.io/crates/wasi-nn
 [Rust README]: rust/README.md
@@ -49,7 +50,11 @@ WebAssembly, and run it in a WebAssembly runtime that supports the [wasi-nn] pro
 ### Examples
 
 This repository includes examples of using these bindings. See the [Rust example] and
-[AssemblyScript example] to walk through an end-to-end image classification using an AlexNet model. Currently the example uses OpenVino as the backend. If you are running Ubuntu, you can simply run the script to install the supported version`.github/actions/install-openvino/install.sh`. Otherwise you'll need to visit the [Installation Guides] and follow the instructions for your OS. The version of OpenVino currently supported is openvino_2022.1.0.643.
+[AssemblyScript example] to walk through an end-to-end image classification using an AlexNet model.
+Currently the example uses OpenVino as the backend. If you are running Ubuntu, you can simply run
+the script to install the supported version`.github/actions/install-openvino/install.sh`. Otherwise
+you'll need to visit the [Installation Guides] and follow the instructions for your OS. The version
+of OpenVino currently supported is openvino_2022.1.0.643.
 
 Once you have OpenVino installed, run them with:
  - `./build.sh rust` runs the [Rust example]

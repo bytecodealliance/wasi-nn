@@ -16,7 +16,7 @@ functionality from WebAssembly.
 1. Depend on this crate in your `Cargo.toml`:
     ```toml
     [dependencies]
-    wasi-nn = "0.2.1"
+    wasi-nn = "0.3.0"
     ```
 
 2. Use the wasi-nn APIs in your application, for example:
