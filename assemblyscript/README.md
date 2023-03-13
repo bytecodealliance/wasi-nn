@@ -15,7 +15,7 @@ learning functionality from WebAssembly.
 1. Add the dependency for wasi-nn to your `package.json`:
   ```
   "dependencies": {
-    "as-wasi-nn": "0.2.1"
+    "as-wasi-nn": "0.3.0"
   }
   ```
 

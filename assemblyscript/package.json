@@ -1,6 +1,6 @@
 {
   "name": "as-wasi-nn",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "High-level wasi-nn bindings for AssemblyScript",
   "scripts": {
     "asbuild:untouched": "asc examples/object-classification.ts --runtime stub --use abort=examples/object-classification/wasi_abort --target debug --enable simd",
