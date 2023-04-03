@@ -46,6 +46,29 @@ pub fn convert_image_to_bytes(
     }
 }
 
+// standard 8bit RGB format. It should work with standard image formats such as .jpg, .png, etc
+pub fn convert_image_bytes_to_tensor_bytes(
+    bytes: &[u8],
+    width: u32,
+    height: u32,
+    precision: TensorType,
+    order: ColorOrder,
+) -> Result<Vec<u8>, String> {
+    // Create the DynamicImage by decoding the image.
+    let decoded = image::load_from_memory(bytes)
+        .expect("Unable to load image from bytes.");
+
+    // Resize the image to the specified W/H and get an array of u8 RGB values.
+    let dyn_img: DynamicImage = decoded.resize_exact(width, height, image::imageops::Triangle);
+    let mut img_bytes = dyn_img.into_bytes();
+
+    // Get an array of the pixel values and return it.
+    match order {
+        ColorOrder::RGB => Ok(save_bytes(&img_bytes, precision)),
+        ColorOrder::BGR => Ok(save_bytes(rgb_to_bgr(&mut img_bytes), precision)),
+    }
+}
+
 pub fn calculate_buffer_size(width: u32, height: u32, precision: TensorType) -> usize {
     let bytes_per_pixel = get_bytes_per_pixel(precision);
     let pixels: u32 = width * height * 3;

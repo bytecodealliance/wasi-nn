@@ -12,8 +12,8 @@ set -e
 # variables accept a commit hash, a branch, a tag, etc.
 WITX_BINDGEN_REPOSITORY=${WITX_BINDGEN_REPOSITORY:-https://github.com/bytecodealliance/wasi}
 WITX_BINDGEN_REVISION=${WITX_BINDGEN_REVISION:-main}
-WASI_NN_RAW_URL=${WASI_NN_RAW_URL:-https://raw.githubusercontent.com/WebAssembly/wasi-nn}
-WASI_NN_REVISION=${WASI_NN_REVISION:-main}
+WASI_NN_RAW_URL=${WASI_NN_RAW_URL:-https://raw.githubusercontent.com/geekbeast/webassembly-wasi-nn}
+WASI_NN_REVISION=${WASI_NN_REVISION:-feature/named-models}
 
 echo "=== Retrieve and build 'witx-bindgen' ==="
 TMP_DIR=$(mktemp -d /tmp/regenerate-bindings.XXXXXX)
@@ -44,7 +44,7 @@ sed -i "s/pub struct Tensor {/pub struct Tensor<'a> {/" ${GENERATED_RS}
 sed -i "s/pub dimensions: TensorDimensions<'_>,/pub dimensions: TensorDimensions<'a>,/" ${GENERATED_RS}
 sed -i "s/pub data: TensorData<'_>,/pub data: TensorData<'a>,/" ${GENERATED_RS}
 sed -i "s/GraphBuilder<'_>/GraphBuilder<'a>/" ${GENERATED_RS}
-
+sed -i "s/GraphBuilder<'_>/GraphBuilder<'a>/" ${GENERATED_RS}
 
 # Clean up
 rm -rf $TMP_DIR

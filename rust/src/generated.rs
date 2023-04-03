@@ -5,6 +5,7 @@
 use core::fmt;
 use core::mem::MaybeUninit;
 pub type BufferSize = u32;
+pub type Status = u32;
 #[repr(transparent)]
 #[derive(Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct NnErrno(u16);
@@ -14,6 +15,7 @@ pub const NN_ERRNO_INVALID_ENCODING: NnErrno = NnErrno(2);
 pub const NN_ERRNO_MISSING_MEMORY: NnErrno = NnErrno(3);
 pub const NN_ERRNO_BUSY: NnErrno = NnErrno(4);
 pub const NN_ERRNO_RUNTIME_ERROR: NnErrno = NnErrno(5);
+pub const NN_ERRNO_MODEL_TOO_LARGE: NnErrno = NnErrno(6);
 impl NnErrno {
     pub const fn raw(&self) -> u16 {
         self.0
@@ -27,6 +29,7 @@ impl NnErrno {
             3 => "MISSING_MEMORY",
             4 => "BUSY",
             5 => "RUNTIME_ERROR",
+            6 => "MODEL_TOO_LARGE",
             _ => unsafe { core::hint::unreachable_unchecked() },
         }
     }
@@ -38,6 +41,7 @@ impl NnErrno {
             3 => "",
             4 => "",
             5 => "",
+            6 => "",
             _ => unsafe { core::hint::unreachable_unchecked() },
         }
     }
@@ -198,6 +202,8 @@ impl fmt::Debug for ExecutionTarget {
 }
 
 pub type GraphExecutionContext = u32;
+pub type Utf8name<'a> = &'a [u8];
+pub type Utf8uri<'a> = &'a [u8];
 pub unsafe fn load(
     builder: GraphBuilderArray<'_>,
     encoding: GraphEncoding,
@@ -213,6 +219,116 @@ pub unsafe fn load(
     );
     match ret {
         0 => Ok(core::ptr::read(rp0.as_mut_ptr() as i32 as *const Graph)),
+        _ => Err(NnErrno(ret as u16)),
+    }
+}
+
+/// Load an opaque sequence of bytes to use for inference.
+///
+/// This allows runtime implementations to support multiple graph encoding formats. For unsupported graph encodings,
+/// return `errno::inval`.
+///
+/// ## Parameters
+///
+/// * `model_name` - The name of the model to load from the model registry
+pub unsafe fn load_by_name(model_name: Utf8name<'_>) -> Result<Graph, NnErrno> {
+    let mut rp0 = MaybeUninit::<Graph>::uninit();
+    let ret = wasi_ephemeral_nn::load_by_name(
+        model_name.as_ptr() as i32,
+        model_name.len() as i32,
+        rp0.as_mut_ptr() as i32,
+    );
+    match ret {
+        0 => Ok(core::ptr::read(rp0.as_mut_ptr() as i32 as *const Graph)),
+        _ => Err(NnErrno(ret as u16)),
+    }
+}
+
+/// Allows registering a model via URI
+///
+///
+/// ## Parameters
+///
+/// * `uri` - The URI from where the model can be retrieved.
+/// * `encoding` - The encoding of the graph.
+/// * `target` - Where to execute the graph.
+pub unsafe fn register_model_uri(
+    uri: Utf8uri<'_>,
+    model_name: Utf8name<'_>,
+    encoding: GraphEncoding,
+    target: ExecutionTarget,
+) -> Result<(), NnErrno> {
+    let ret = wasi_ephemeral_nn::register_model_uri(
+        uri.as_ptr() as i32,
+        uri.len() as i32,
+        model_name.as_ptr() as i32,
+        model_name.len() as i32,
+        encoding.0 as i32,
+        target.0 as i32,
+    );
+    match ret {
+        0 => Ok(()),
+        _ => Err(NnErrno(ret as u16)),
+    }
+}
+
+/// Allows registering a model directly via bytes.
+///
+///
+/// ## Parameters
+///
+/// * `model_name` - The bytes necessary to build the graph.
+/// * `encoding` - The encoding of the graph.
+/// * `target` - Where to execute the graph.
+pub unsafe fn register_model_bytes(
+    model_name: Utf8name<'_>,
+    builder: GraphBuilderArray<'_>,
+    encoding: GraphEncoding,
+    target: ExecutionTarget,
+) -> Result<(), NnErrno> {
+    let ret = wasi_ephemeral_nn::register_model_bytes(
+        model_name.as_ptr() as i32,
+        model_name.len() as i32,
+        builder.as_ptr() as i32,
+        builder.len() as i32,
+        encoding.0 as i32,
+        target.0 as i32,
+    );
+    match ret {
+        0 => Ok(()),
+        _ => Err(NnErrno(ret as u16)),
+    }
+}
+
+/// Remove a model from the registry.
+///
+///
+/// ## Parameters
+///
+/// * `model_name` - The bytes necessary to build the graph.
+pub unsafe fn unregister(model_name: Utf8name<'_>) -> Result<(), NnErrno> {
+    let ret = wasi_ephemeral_nn::unregister(model_name.as_ptr() as i32, model_name.len() as i32);
+    match ret {
+        0 => Ok(()),
+        _ => Err(NnErrno(ret as u16)),
+    }
+}
+
+/// Check if a model is registered with the registry.
+///
+///
+/// ## Parameters
+///
+/// * `model_name` - The bytes necessary to build the graph.
+pub unsafe fn is_registered(model_name: Utf8name<'_>) -> Result<Status, NnErrno> {
+    let mut rp0 = MaybeUninit::<Status>::uninit();
+    let ret = wasi_ephemeral_nn::is_registered(
+        model_name.as_ptr() as i32,
+        model_name.len() as i32,
+        rp0.as_mut_ptr() as i32,
+    );
+    match ret {
+        0 => Ok(core::ptr::read(rp0.as_mut_ptr() as i32 as *const Status)),
         _ => Err(NnErrno(ret as u16)),
     }
 }
@@ -273,6 +389,37 @@ pub mod wasi_ephemeral_nn {
     #[link(wasm_import_module = "wasi_ephemeral_nn")]
     extern "C" {
         pub fn load(arg0: i32, arg1: i32, arg2: i32, arg3: i32, arg4: i32) -> i32;
+        /// Load an opaque sequence of bytes to use for inference.
+        ///
+        /// This allows runtime implementations to support multiple graph encoding formats. For unsupported graph encodings,
+        /// return `errno::inval`.
+        pub fn load_by_name(arg0: i32, arg1: i32, arg2: i32) -> i32;
+        /// Allows registering a model via URI
+        ///
+        pub fn register_model_uri(
+            arg0: i32,
+            arg1: i32,
+            arg2: i32,
+            arg3: i32,
+            arg4: i32,
+            arg5: i32,
+        ) -> i32;
+        /// Allows registering a model directly via bytes.
+        ///
+        pub fn register_model_bytes(
+            arg0: i32,
+            arg1: i32,
+            arg2: i32,
+            arg3: i32,
+            arg4: i32,
+            arg5: i32,
+        ) -> i32;
+        /// Remove a model from the registry.
+        ///
+        pub fn unregister(arg0: i32, arg1: i32) -> i32;
+        /// Check if a model is registered with the registry.
+        ///
+        pub fn is_registered(arg0: i32, arg1: i32, arg2: i32) -> i32;
         pub fn init_execution_context(arg0: i32, arg1: i32) -> i32;
         pub fn set_input(arg0: i32, arg1: i32, arg2: i32) -> i32;
         pub fn get_output(arg0: i32, arg1: i32, arg2: i32, arg3: i32, arg4: i32) -> i32;
