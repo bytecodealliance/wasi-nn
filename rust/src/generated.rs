@@ -202,8 +202,6 @@ impl fmt::Debug for ExecutionTarget {
 }
 
 pub type GraphExecutionContext = u32;
-pub type Utf8name<'a> = &'a [u8];
-pub type Utf8uri<'a> = &'a [u8];
 pub unsafe fn load(
     builder: GraphBuilderArray<'_>,
     encoding: GraphEncoding,
@@ -231,7 +229,7 @@ pub unsafe fn load(
 /// ## Parameters
 ///
 /// * `model_name` - The name of the model to load from the model registry
-pub unsafe fn load_by_name(model_name: Utf8name<'_>) -> Result<Graph, NnErrno> {
+pub unsafe fn load_by_name(model_name: &str) -> Result<Graph, NnErrno> {
     let mut rp0 = MaybeUninit::<Graph>::uninit();
     let ret = wasi_ephemeral_nn::load_by_name(
         model_name.as_ptr() as i32,
@@ -244,35 +242,7 @@ pub unsafe fn load_by_name(model_name: Utf8name<'_>) -> Result<Graph, NnErrno> {
     }
 }
 
-/// Allows registering a model via URI
-///
-///
-/// ## Parameters
-///
-/// * `uri` - The URI from where the model can be retrieved.
-/// * `encoding` - The encoding of the graph.
-/// * `target` - Where to execute the graph.
-pub unsafe fn register_model_uri(
-    uri: Utf8uri<'_>,
-    model_name: Utf8name<'_>,
-    encoding: GraphEncoding,
-    target: ExecutionTarget,
-) -> Result<(), NnErrno> {
-    let ret = wasi_ephemeral_nn::register_model_uri(
-        uri.as_ptr() as i32,
-        uri.len() as i32,
-        model_name.as_ptr() as i32,
-        model_name.len() as i32,
-        encoding.0 as i32,
-        target.0 as i32,
-    );
-    match ret {
-        0 => Ok(()),
-        _ => Err(NnErrno(ret as u16)),
-    }
-}
-
-/// Allows registering a model directly via bytes.
+/// Registers a model from the binary form of its computation graph.
 ///
 ///
 /// ## Parameters
@@ -280,13 +250,13 @@ pub unsafe fn register_model_uri(
 /// * `model_name` - The bytes necessary to build the graph.
 /// * `encoding` - The encoding of the graph.
 /// * `target` - Where to execute the graph.
-pub unsafe fn register_model_bytes(
-    model_name: Utf8name<'_>,
+pub unsafe fn register_named_model(
+    model_name: &str,
     builder: GraphBuilderArray<'_>,
     encoding: GraphEncoding,
     target: ExecutionTarget,
 ) -> Result<(), NnErrno> {
-    let ret = wasi_ephemeral_nn::register_model_bytes(
+    let ret = wasi_ephemeral_nn::register_named_model(
         model_name.as_ptr() as i32,
         model_name.len() as i32,
         builder.as_ptr() as i32,
@@ -306,7 +276,7 @@ pub unsafe fn register_model_bytes(
 /// ## Parameters
 ///
 /// * `model_name` - The bytes necessary to build the graph.
-pub unsafe fn unregister(model_name: Utf8name<'_>) -> Result<(), NnErrno> {
+pub unsafe fn unregister(model_name: &str) -> Result<(), NnErrno> {
     let ret = wasi_ephemeral_nn::unregister(model_name.as_ptr() as i32, model_name.len() as i32);
     match ret {
         0 => Ok(()),
@@ -320,7 +290,7 @@ pub unsafe fn unregister(model_name: Utf8name<'_>) -> Result<(), NnErrno> {
 /// ## Parameters
 ///
 /// * `model_name` - The bytes necessary to build the graph.
-pub unsafe fn is_registered(model_name: Utf8name<'_>) -> Result<Status, NnErrno> {
+pub unsafe fn is_registered(model_name: &str) -> Result<Status, NnErrno> {
     let mut rp0 = MaybeUninit::<Status>::uninit();
     let ret = wasi_ephemeral_nn::is_registered(
         model_name.as_ptr() as i32,
@@ -394,19 +364,9 @@ pub mod wasi_ephemeral_nn {
         /// This allows runtime implementations to support multiple graph encoding formats. For unsupported graph encodings,
         /// return `errno::inval`.
         pub fn load_by_name(arg0: i32, arg1: i32, arg2: i32) -> i32;
-        /// Allows registering a model via URI
+        /// Registers a model from the binary form of its computation graph.
         ///
-        pub fn register_model_uri(
-            arg0: i32,
-            arg1: i32,
-            arg2: i32,
-            arg3: i32,
-            arg4: i32,
-            arg5: i32,
-        ) -> i32;
-        /// Allows registering a model directly via bytes.
-        ///
-        pub fn register_model_bytes(
+        pub fn register_named_model(
             arg0: i32,
             arg1: i32,
             arg2: i32,
