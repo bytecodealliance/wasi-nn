@@ -16,6 +16,7 @@ pub const NN_ERRNO_MISSING_MEMORY: NnErrno = NnErrno(3);
 pub const NN_ERRNO_BUSY: NnErrno = NnErrno(4);
 pub const NN_ERRNO_RUNTIME_ERROR: NnErrno = NnErrno(5);
 pub const NN_ERRNO_MODEL_TOO_LARGE: NnErrno = NnErrno(6);
+pub const NN_ERRNO_MODEL_NOT_FOUND: NnErrno = NnErrno(7);
 impl NnErrno {
     pub const fn raw(&self) -> u16 {
         self.0
@@ -30,6 +31,7 @@ impl NnErrno {
             4 => "BUSY",
             5 => "RUNTIME_ERROR",
             6 => "MODEL_TOO_LARGE",
+            7 => "MODEL_NOT_FOUND",
             _ => unsafe { core::hint::unreachable_unchecked() },
         }
     }
@@ -42,6 +44,7 @@ impl NnErrno {
             4 => "",
             5 => "",
             6 => "",
+            7 => "",
             _ => unsafe { core::hint::unreachable_unchecked() },
         }
     }
@@ -202,6 +205,8 @@ impl fmt::Debug for ExecutionTarget {
 }
 
 pub type GraphExecutionContext = u32;
+pub type ModelList = *mut *mut u8;
+pub type ModelBuffer = *mut u8;
 pub unsafe fn load(
     builder: GraphBuilderArray<'_>,
     encoding: GraphEncoding,
@@ -270,35 +275,32 @@ pub unsafe fn register_named_model(
     }
 }
 
-/// Remove a model from the registry.
+/// Retrieve a list of models from the registry.
 ///
-///
-/// ## Parameters
-///
-/// * `model_name` - The bytes necessary to build the graph.
-pub unsafe fn unregister(model_name: &str) -> Result<(), NnErrno> {
-    let ret = wasi_ephemeral_nn::unregister(model_name.as_ptr() as i32, model_name.len() as i32);
+pub unsafe fn get_model_list(
+    buffer: ModelBuffer,
+    models: ModelList,
+    length: BufferSize,
+) -> Result<(), NnErrno> {
+    let ret = wasi_ephemeral_nn::get_model_list(buffer as i32, models as i32, length as i32);
     match ret {
         0 => Ok(()),
         _ => Err(NnErrno(ret as u16)),
     }
 }
 
-/// Check if a model is registered with the registry.
+/// Retrieve a list of models from the registry.
 ///
-///
-/// ## Parameters
-///
-/// * `model_name` - The bytes necessary to build the graph.
-pub unsafe fn is_registered(model_name: &str) -> Result<Status, NnErrno> {
-    let mut rp0 = MaybeUninit::<Status>::uninit();
-    let ret = wasi_ephemeral_nn::is_registered(
-        model_name.as_ptr() as i32,
-        model_name.len() as i32,
-        rp0.as_mut_ptr() as i32,
-    );
+pub unsafe fn get_model_list_sizes() -> Result<(BufferSize, BufferSize), NnErrno> {
+    let mut rp0 = MaybeUninit::<BufferSize>::uninit();
+    let mut rp1 = MaybeUninit::<BufferSize>::uninit();
+    let ret =
+        wasi_ephemeral_nn::get_model_list_sizes(rp0.as_mut_ptr() as i32, rp1.as_mut_ptr() as i32);
     match ret {
-        0 => Ok(core::ptr::read(rp0.as_mut_ptr() as i32 as *const Status)),
+        0 => Ok((
+            core::ptr::read(rp0.as_mut_ptr() as i32 as *const BufferSize),
+            core::ptr::read(rp1.as_mut_ptr() as i32 as *const BufferSize),
+        )),
         _ => Err(NnErrno(ret as u16)),
     }
 }
@@ -374,12 +376,12 @@ pub mod wasi_ephemeral_nn {
             arg4: i32,
             arg5: i32,
         ) -> i32;
-        /// Remove a model from the registry.
+        /// Retrieve a list of models from the registry.
         ///
-        pub fn unregister(arg0: i32, arg1: i32) -> i32;
-        /// Check if a model is registered with the registry.
+        pub fn get_model_list(arg0: i32, arg1: i32, arg2: i32) -> i32;
+        /// Retrieve a list of models from the registry.
         ///
-        pub fn is_registered(arg0: i32, arg1: i32, arg2: i32) -> i32;
+        pub fn get_model_list_sizes(arg0: i32, arg1: i32) -> i32;
         pub fn init_execution_context(arg0: i32, arg1: i32) -> i32;
         pub fn set_input(arg0: i32, arg1: i32, arg2: i32) -> i32;
         pub fn get_output(arg0: i32, arg1: i32, arg2: i32, arg3: i32, arg4: i32) -> i32;
