@@ -12,8 +12,8 @@ set -e
 # variables accept a commit hash, a branch, a tag, etc.
 WITX_BINDGEN_REPOSITORY=${WITX_BINDGEN_REPOSITORY:-https://github.com/bytecodealliance/wasi}
 WITX_BINDGEN_REVISION=${WITX_BINDGEN_REVISION:-main}
-WASI_NN_RAW_URL=${WASI_NN_RAW_URL:-https://raw.githubusercontent.com/geekbeast/webassembly-wasi-nn}
-WASI_NN_REVISION=${WASI_NN_REVISION:-feature/named-models}
+WASI_NN_RAW_URL=${WASI_NN_RAW_URL:-https://raw.githubusercontent.com/WebAssembly/wasi-nn}
+WASI_NN_REVISION=${WASI_NN_REVISION:-main}
 
 echo "=== Retrieve and build 'witx-bindgen' ==="
 TMP_DIR=$(mktemp -d /tmp/regenerate-bindings.XXXXXX)
@@ -40,11 +40,11 @@ GENERATED_RS=$(realpath ${SCRIPT_DIR}/../src/generated.rs)
 ${TMP_DIR}/target/release/witx-bindgen ${TMP_DIR}/wasi-nn.witx > ${GENERATED_RS}
 # Also, here we fix up an issue in which `witx-bindgen` does not generate correct lifetimes; see
 # https://github.com/bytecodealliance/wasi/issues/65.
-sed -i -e  "s/pub struct Tensor {/pub struct Tensor<'a> {/" ${GENERATED_RS}
-sed -i -e  "s/pub dimensions: TensorDimensions<'_>,/pub dimensions: TensorDimensions<'a>,/" ${GENERATED_RS}
-sed -i -e  "s/pub data: TensorData<'_>,/pub data: TensorData<'a>,/" ${GENERATED_RS}
-sed -i -e  "s/GraphBuilder<'_>/GraphBuilder<'a>/" ${GENERATED_RS}
-sed -i -e  "s/GraphBuilder<'_>/GraphBuilder<'a>/" ${GENERATED_RS}
+sed -i "s/pub struct Tensor {/pub struct Tensor<'a> {/" ${GENERATED_RS}
+sed -i "s/pub dimensions: TensorDimensions<'_>,/pub dimensions: TensorDimensions<'a>,/" ${GENERATED_RS}
+sed -i "s/pub data: TensorData<'_>,/pub data: TensorData<'a>,/" ${GENERATED_RS}
+sed -i "s/GraphBuilder<'_>/GraphBuilder<'a>/" ${GENERATED_RS}
+sed -i "s/GraphBuilder<'_>/GraphBuilder<'a>/" ${GENERATED_RS}
 
 # Clean up
 rm -rf $TMP_DIR
