@@ -13,8 +13,14 @@ publish = true
 
 exclude = [
     "examples",
+    "scripts",
+    "Cargo.lock",
 ]
 
+[package.metadata.docs.rs]
+targets = ["wasm32-wasi"]
+
 [dependencies]
+thiserror = "1"
 
 [workspace]
