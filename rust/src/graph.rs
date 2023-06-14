@@ -1,4 +1,4 @@
-use crate::{tensor::Tensor, Error, SharedSlice, TensorType};
+use crate::{tensor::Tensor, Error, TensorType};
 
 /// Describes the encoding of the graph. This allows the API to be implemented by various backends
 /// that encode (i.e., serialize) their graph IR with different formats.
@@ -106,39 +106,17 @@ impl GraphBuilder {
     }
 
     #[inline(always)]
-    pub fn build_from_shared_slices(
-        self,
-        graph_builder_slices: impl AsRef<[SharedSlice<u8>]>,
-    ) -> Result<Graph, Error> {
-        let graph_contents = Vec::from(graph_builder_slices.as_ref());
-        let graph_builder_array: Vec<&[u8]> = graph_contents.iter().map(|s| s.as_ref()).collect();
+    pub fn build_from_bytes<B>(self, bytes_array: impl AsRef<[B]>) -> Result<Graph, Error>
+    where
+        B: AsRef<[u8]>,
+    {
+        let graph_builder_array: Vec<&[u8]> =
+            bytes_array.as_ref().iter().map(|s| s.as_ref()).collect();
         let graph_handle =
             syscall::load(graph_builder_array.as_slice(), self.encoding, self.target)?;
         Ok(Graph {
             build_info: self,
             graph_handle,
-            graph_contents,
-        })
-    }
-
-    /// If a memory chunk such as `Vec<u8>` has more than one graph blob or other information,
-    /// [`SharedSlice`] could be used to avoid copy.
-    #[inline(always)]
-    pub fn build_from_bytes(
-        self,
-        bytes_array: impl IntoIterator<Item = Vec<u8>>,
-    ) -> Result<Graph, Error> {
-        let graph_contents: Vec<SharedSlice<u8>> = bytes_array
-            .into_iter()
-            .map(|v| SharedSlice::from(v))
-            .collect();
-        let graph_builder_array: Vec<&[u8]> = graph_contents.iter().map(|s| s.as_ref()).collect();
-        let graph_handle =
-            syscall::load(graph_builder_array.as_slice(), self.encoding, self.target)?;
-        Ok(Graph {
-            build_info: self,
-            graph_handle,
-            graph_contents,
         })
     }
 
@@ -149,9 +127,7 @@ impl GraphBuilder {
     {
         let mut graph_contents = Vec::with_capacity(files.as_ref().len());
         for file in files.as_ref() {
-            graph_contents.push(SharedSlice::from(
-                std::fs::read(file).map_err(Into::<Error>::into)?,
-            ));
+            graph_contents.push(std::fs::read(file).map_err(Into::<Error>::into)?);
         }
         let graph_builder_array: Vec<&[u8]> = graph_contents.iter().map(|s| s.as_ref()).collect();
         let graph_handle =
@@ -159,13 +135,11 @@ impl GraphBuilder {
         Ok(Graph {
             build_info: self,
             graph_handle,
-            graph_contents,
         })
     }
 }
 
 /// An execution graph for performing inference (i.e., a model), which can create instances of [`GraphExecutionContext`].
-/// Graph must has ownership of graph content bytes.
 ///
 /// ### Example
 /// ```rust
@@ -187,7 +161,6 @@ impl GraphBuilder {
 /// ```
 pub struct Graph {
     build_info: GraphBuilder,
-    graph_contents: Vec<SharedSlice<u8>>,
     graph_handle: syscall::GraphHandle,
 }
 
@@ -202,12 +175,6 @@ impl Graph {
     #[inline(always)]
     pub fn execution_target(&self) -> ExecutionTarget {
         self.build_info.target
-    }
-
-    /// Get the graph bytes.
-    #[inline(always)]
-    pub fn graph_contents(&self) -> &Vec<SharedSlice<u8>> {
-        &self.graph_contents
     }
 
     /// Get the graph id.

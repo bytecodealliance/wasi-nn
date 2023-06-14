@@ -45,9 +45,7 @@ mod generated;
 mod error;
 mod graph;
 mod tensor;
-mod utils;
 
 pub use error::Error;
 pub use graph::{ExecutionTarget, Graph, GraphBuilder, GraphEncoding, GraphExecutionContext};
 pub use tensor::TensorType;
-pub use utils::SharedSlice;
