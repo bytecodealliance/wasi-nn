@@ -243,7 +243,7 @@ impl<'a> GraphExecutionContext<'a> {
     pub fn get_output<T: Sized>(
         &self,
         index: usize,
-        out_buffer: &mut impl AsMut<[T]>,
+        mut out_buffer: impl AsMut<[T]>,
     ) -> Result<usize, Error> {
         let output_slice = out_buffer.as_mut();
         let out_buf = unsafe {
