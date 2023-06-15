@@ -240,16 +240,11 @@ impl<'a> GraphExecutionContext<'a> {
 
     /// Copy output tensor to `out_buffer`, return the out **byte size**.
     #[inline(always)]
-    pub fn get_output<T: Sized>(
-        &self,
-        index: usize,
-        mut out_buffer: impl AsMut<[T]>,
-    ) -> Result<usize, Error> {
-        let output_slice = out_buffer.as_mut();
+    pub fn get_output<T: Sized>(&self, index: usize, out_buffer: &mut [T]) -> Result<usize, Error> {
         let out_buf = unsafe {
             core::slice::from_raw_parts_mut(
-                output_slice.as_mut_ptr() as *mut u8,
-                output_slice.len() * std::mem::size_of::<T>(),
+                out_buffer.as_mut_ptr() as *mut u8,
+                out_buffer.len() * std::mem::size_of::<T>(),
             )
         };
         syscall::get_output(self.ctx_handle, index, out_buf)
