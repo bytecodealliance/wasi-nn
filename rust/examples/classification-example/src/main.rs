@@ -14,13 +14,10 @@ pub fn main() {
     let graph = wasi_nn::GraphBuilder::default()
         .build_from_bytes([xml.into_bytes(), weights])
         .unwrap();
-    println!("Loaded graph into wasi-nn with ID: {}", graph.graph_id());
+    println!("Loaded graph into wasi-nn with ID: {:?}", graph);
 
     let mut context = graph.init_execution_context().unwrap();
-    println!(
-        "Created wasi-nn execution context with ID: {}",
-        context.context_id()
-    );
+    println!("Created wasi-nn execution context with ID: {:?}", context);
 
     // Load a tensor that precisely matches the graph input tensor (see
     // `fixture/frozen_inference_graph.xml`).

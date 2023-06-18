@@ -1,4 +1,5 @@
 use crate::{tensor::Tensor, Error, TensorType};
+use std::fmt::{Debug, Display, Formatter};
 
 /// Describes the encoding of the graph. This allows the API to be implemented by various backends
 /// that encode (i.e., serialize) their graph IR with different formats.
@@ -177,12 +178,6 @@ impl Graph {
         self.build_info.target
     }
 
-    /// Get the graph id.
-    #[inline(always)]
-    pub fn graph_id(&self) -> syscall::GraphHandle {
-        self.graph_handle
-    }
-
     /// Use this graph to create a new instances of [`GraphExecutionContext`].
     #[inline(always)]
     pub fn init_execution_context(&self) -> Result<GraphExecutionContext, Error> {
@@ -191,6 +186,18 @@ impl Graph {
             graph: self,
             ctx_handle,
         })
+    }
+}
+
+impl Display for Graph {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Graph#{}", self.graph_handle)
+    }
+}
+
+impl Debug for Graph {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.graph_handle)
     }
 }
 
@@ -205,12 +212,6 @@ impl<'a> GraphExecutionContext<'a> {
     #[inline(always)]
     pub fn graph(&self) -> &Graph {
         self.graph
-    }
-
-    /// Get the execution context id.
-    #[inline(always)]
-    pub fn context_id(&self) -> syscall::GraphExecutionContextHandle {
-        self.ctx_handle
     }
 
     /// Set input uses the `data`, not only [u8], but also [f32], [i32], etc.
@@ -248,6 +249,18 @@ impl<'a> GraphExecutionContext<'a> {
             )
         };
         syscall::get_output(self.ctx_handle, index, out_buf)
+    }
+}
+
+impl<'a> Display for GraphExecutionContext<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "GraphExecutionContext#{}", self.ctx_handle)
+    }
+}
+
+impl<'a> Debug for GraphExecutionContext<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.ctx_handle)
     }
 }
 
@@ -355,8 +368,9 @@ mod syscall {
 
 #[cfg(test)]
 mod test {
-    use super::{ExecutionTarget, GraphBuilder, GraphEncoding};
     use crate::generated;
+
+    use super::{ExecutionTarget, GraphBuilder, GraphEncoding};
 
     #[test]
     fn test_enum_graph_encoding() {
