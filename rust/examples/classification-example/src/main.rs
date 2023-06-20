@@ -1,5 +1,4 @@
 use image2tensor::*;
-use std::convert::TryInto;
 use std::fs;
 use wasi_nn;
 mod imagenet_classes;
@@ -11,55 +10,40 @@ pub fn main() {
     let weights = fs::read("fixture/mobilenet.bin").unwrap();
     println!("Read graph weights, size in bytes: {}", weights.len());
 
-    let graph = unsafe {
-        wasi_nn::load(
-            &[&xml.into_bytes(), &weights],
-            wasi_nn::GRAPH_ENCODING_OPENVINO,
-            wasi_nn::EXECUTION_TARGET_CPU,
-        )
-        .unwrap()
-    };
-    println!("Loaded graph into wasi-nn with ID: {}", graph);
+    // Default is `Openvino` + `CPU`.
+    let graph = wasi_nn::GraphBuilder::default()
+        .build_from_bytes([xml.into_bytes(), weights])
+        .unwrap();
+    println!("Loaded graph into wasi-nn with ID: {:?}", graph);
 
-    let context = unsafe { wasi_nn::init_execution_context(graph).unwrap() };
-    println!("Created wasi-nn execution context with ID: {}", context);
+    let mut context = graph.init_execution_context().unwrap();
+    println!("Created wasi-nn execution context with ID: {:?}", context);
 
     // Load a tensor that precisely matches the graph input tensor (see
     // `fixture/frozen_inference_graph.xml`).
     for i in 0..5 {
         let filename: String = format!("{}{}{}", "fixture/images/", i, ".jpg");
         // Convert the image. If it fails just exit
-        let tensor_data = convert_image_to_bytes(&filename, 224, 224, TensorType::F32, ColorOrder::BGR).or_else(|e| {
-            Err(e)
-        }).unwrap();
+        let tensor_data =
+            convert_image_to_bytes(&filename, 224, 224, TensorType::F32, ColorOrder::BGR)
+                .or_else(|e| Err(e))
+                .unwrap();
 
         println!("Read input tensor, size in bytes: {}", tensor_data.len());
-        let tensor = wasi_nn::Tensor {
-            dimensions: &[1, 3, 224, 224],
-            type_: wasi_nn::TENSOR_TYPE_F32,
-            data: &tensor_data,
-        };
-        unsafe {
-            wasi_nn::set_input(context, 0, tensor).unwrap();
-        }
+
+        // Set inference input.
+        let dimensions = [1, 3, 224, 224];
+        context
+            .set_input(0, wasi_nn::TensorType::F32, &dimensions, &tensor_data)
+            .unwrap();
 
         // Execute the inference.
-        unsafe {
-            wasi_nn::compute(context).unwrap();
-        }
+        context.compute().unwrap();
         println!("Executed graph inference");
 
         // Retrieve the output.
         let mut output_buffer = vec![0f32; 1001];
-        unsafe {
-            wasi_nn::get_output(
-                context,
-                0,
-                &mut output_buffer[..] as *mut [f32] as *mut u8,
-                (output_buffer.len() * 4).try_into().unwrap(),
-            )
-            .unwrap();
-        }
+        context.get_output(0, &mut output_buffer).unwrap();
 
         let results = sort_results(&output_buffer);
         println!("Found results, sorted top 5: {:?}", &results[..5]);
