@@ -1,5 +1,6 @@
 //! Wraps `wasi-nn` API errors.
 
+/// Wraps `wasi-nn` API errors.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("IO Error: {0}")]
