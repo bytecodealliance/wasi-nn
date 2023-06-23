@@ -375,6 +375,7 @@ mod syscall {
     }
 }
 
+// These stubbed out functions are only necessary for running `cargo test`.
 #[cfg(not(all(target_arch = "wasm32", target_os = "wasi")))]
 mod syscall {
     use crate::{tensor::Tensor, Error, ExecutionTarget, GraphEncoding};
