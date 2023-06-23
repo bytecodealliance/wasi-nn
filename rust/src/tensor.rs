@@ -1,3 +1,5 @@
+//! Tensor-related definitions.
+
 /// The type of the elements in a tensor.
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
 #[repr(C)]
@@ -12,10 +14,9 @@ impl TensorType {
     #[inline(always)]
     pub fn byte_size(&self) -> usize {
         match self {
-            Self::F16 => 2,
-            Self::F32 => 4,
             Self::U8 => 1,
-            Self::I32 => 4,
+            Self::F16 => 2,
+            Self::F32 | Self::I32 => 4,
         }
     }
 }

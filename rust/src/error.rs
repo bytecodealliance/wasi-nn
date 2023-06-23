@@ -1,4 +1,5 @@
-/// wasi-nn API error enum
+//! Wraps `wasi-nn` API errors.
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("IO Error: {0}")]
@@ -24,9 +25,8 @@ pub enum BackendError {
     UnknownError(i32),
 }
 
-impl BackendError {
-    #[inline(always)]
-    pub(crate) fn from(value: i32) -> Self {
+impl From<i32> for BackendError {
+    fn from(value: i32) -> Self {
         match value {
             1 => Self::InvalidArgument,
             2 => Self::InvalidEncoding,

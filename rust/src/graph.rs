@@ -1,9 +1,10 @@
+//! The core graph definitions.
+
 use crate::{tensor::Tensor, Error, TensorType};
 use std::fmt::{Debug, Display, Formatter};
 
 /// Describes the encoding of the graph. This allows the API to be implemented by various backends
 /// that encode (i.e., serialize) their graph IR with different formats.
-/// Now the available backends are `Openvino`, `Onnx`, `Tensorflow`, `Pytorch`, `TensorflowLite`.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 #[repr(C)]
 pub enum GraphEncoding {
@@ -15,7 +16,6 @@ pub enum GraphEncoding {
 }
 
 /// Define where the graph should be executed.
-/// Now the available devices are `CPU`, `GPU`, `TPU`.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 #[repr(C)]
 pub enum ExecutionTarget {
@@ -24,28 +24,29 @@ pub enum ExecutionTarget {
     TPU,
 }
 
-/// Graph factory, which can be used in order to configure the properties of a new graph.
+/// A graph factory for configuring the properties of a new graph.
+///
 /// Methods can be chained on it in order to configure it.
 /// * Default Graph Encoding: `Openvino`.
 /// * Default Execution Target: `CPU`.
 ///
 /// ### Examples
 ///
-/// #### build a graph with default config ( `CPU` + `Openvino` )
-/// ```rust
-/// use wasi_nn::{GraphBuilder, GraphEncoding};
+/// #### Build a graph with default config ( `CPU` + `Openvino` )
 ///
+/// ```no_run
+/// # use wasi_nn::{GraphBuilder, GraphEncoding};
 /// let xml = "./mobilenet.xml";
 /// let weight = "./mobilenet.bin";
-/// let graph = GraphBuilder::default().build_from_files([xml, weight])?;
+/// let graph = GraphBuilder::default().build_from_files([xml, weight]).unwrap();
 /// ```
 ///
-/// #### build a graph with onnx backend and gpu device target
-/// ```rust
-/// use wasi_nn::{GraphBuilder, GraphEncoding, ExecutionTarget};
+/// #### Build a graph with onnx backend and gpu device target
 ///
-/// let model_file = "./test.onnx";
-/// let graph = GraphBuilder::new(GraphEncoding::Onnx, ExecutionTarget::GPU).build_from_files([model_file])?;
+/// ```no_run
+/// # use wasi_nn::{GraphBuilder, GraphEncoding, ExecutionTarget};
+/// let graph = GraphBuilder::new(GraphEncoding::Onnx, ExecutionTarget::GPU)
+///     .build_from_files(["./test.onnx"]).unwrap();
 /// ```
 ///
 #[derive(Debug, Clone)]
@@ -55,9 +56,6 @@ pub struct GraphBuilder {
 }
 
 impl Default for GraphBuilder {
-    /// Create default GraphBuild
-    /// * Default Graph Encoding: `Openvino`.
-    /// * Default Execution Target: `CPU`.
     #[inline(always)]
     fn default() -> Self {
         Self::new(GraphEncoding::Openvino, ExecutionTarget::CPU)
@@ -140,25 +138,30 @@ impl GraphBuilder {
     }
 }
 
-/// An execution graph for performing inference (i.e., a model), which can create instances of [`GraphExecutionContext`].
+/// An execution graph for performing inference (i.e., a model), which can create instances of
+/// [`GraphExecutionContext`].
 ///
 /// ### Example
-/// ```rust
-/// use wasi_nn::{GraphBuilder, GraphEncoding, ExecutionTarget};
 ///
+/// ```no_run
+/// # use wasi_nn::{GraphBuilder, GraphEncoding, ExecutionTarget};
+/// // Create a graph using `GraphBuilder`.
 /// let model_file = "./test.tflite";
-/// // create a graph using `GraphBuilder`
-/// let graph = GraphBuilder::new(GraphEncoding::TensorflowLite, ExecutionTarget::CPU).build_from_files([model_file])?;
-/// // create an execution context using this graph
-/// let mut graph_exec_ctx = graph.init_execution_context()?;
-/// // set input tensors
-/// // ......
+/// let graph = GraphBuilder::new(GraphEncoding::TensorflowLite, ExecutionTarget::CPU)
+///     .build_from_files([model_file])
+///     .unwrap();
 ///
-/// // compute the inference on the given inputs
-/// graph_exec_ctx.compute()?;
+/// // Create an execution context using this graph.
+/// let mut graph_exec_ctx = graph.init_execution_context().unwrap();
 ///
-/// // get output tensors and do post-processing
-/// // ......
+/// // Set input tensors.
+/// // ...
+///
+/// // Compute the inference on the given inputs.
+/// graph_exec_ctx.compute().unwrap();
+///
+/// // Get output tensors and do post-processing.
+/// // ...
 /// ```
 pub struct Graph {
     build_info: GraphBuilder,
@@ -239,7 +242,7 @@ impl<'a> GraphExecutionContext<'a> {
         syscall::compute(self.ctx_handle)
     }
 
-    /// Copy output tensor to `out_buffer`, return the out **byte size**.
+    /// Copy output tensor to `out_buffer`, return the output's **size in bytes**.
     #[inline(always)]
     pub fn get_output<T: Sized>(&self, index: usize, out_buffer: &mut [T]) -> Result<usize, Error> {
         let out_buf = unsafe {
@@ -366,11 +369,52 @@ mod syscall {
     }
 }
 
+#[cfg(not(all(target_arch = "wasm32", target_os = "wasi")))]
+mod syscall {
+    use crate::{tensor::Tensor, Error, ExecutionTarget, GraphEncoding};
+
+    pub(crate) type GraphHandle = i32;
+    pub(crate) type GraphExecutionContextHandle = i32;
+
+    pub(crate) fn load(
+        _: &[&[u8]],
+        _: GraphEncoding,
+        _: ExecutionTarget,
+    ) -> Result<GraphHandle, Error> {
+        unimplemented!("this crate is only intended to be used with `--target=wasm32-wasi`");
+    }
+
+    pub(crate) fn init_execution_context(
+        _: GraphHandle,
+    ) -> Result<GraphExecutionContextHandle, Error> {
+        unimplemented!("this crate is only intended to be used with `--target=wasm32-wasi`");
+    }
+
+    pub(crate) fn set_input(
+        _: GraphExecutionContextHandle,
+        _: usize,
+        _: Tensor,
+    ) -> Result<(), Error> {
+        unimplemented!("this crate is only intended to be used with `--target=wasm32-wasi`");
+    }
+
+    pub(crate) fn compute(_: GraphExecutionContextHandle) -> Result<(), Error> {
+        unimplemented!("this crate is only intended to be used with `--target=wasm32-wasi`");
+    }
+
+    pub(crate) fn get_output(
+        _: GraphExecutionContextHandle,
+        _: usize,
+        _: &mut [u8],
+    ) -> Result<usize, Error> {
+        unimplemented!("this crate is only intended to be used with `--target=wasm32-wasi`");
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use crate::generated;
-
     use super::{ExecutionTarget, GraphBuilder, GraphEncoding};
+    use crate::generated;
 
     #[test]
     fn test_enum_graph_encoding() {
