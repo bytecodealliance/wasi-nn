@@ -16,21 +16,18 @@ functionality from WebAssembly.
 1. Depend on this crate in your `Cargo.toml`:
     ```toml
     [dependencies]
-    wasi-nn = "0.3.0"
+    wasi-nn = "0.4.0"
     ```
 
 2. Use the wasi-nn APIs in your application, for example:
     ```rust
     use wasi_nn;
-
-    unsafe {
-        wasi_nn::load(
-            &[&xml.into_bytes(), &weights],
-            wasi_nn::GRAPH_ENCODING_OPENVINO,
-            wasi_nn::EXECUTION_TARGET_CPU,
-        )
-        .unwrap()
-    }
+    let graph = GraphBuilder::new(GraphEncoding::TensorflowLite, ExecutionTarget::CPU)
+        .build_from_files([model_path])?;
+    let mut ctx = graph.init_execution_context()?;
+    ctx.set_input(0, TensorType::F32, &input_dims, &input_buffer)?;
+    ctx.compute()?;
+    let output_num_bytes = ctx.get_output(0, &mut output_buffer)?;
     ```
 
 3. Compile the application to WebAssembly:
@@ -38,7 +35,7 @@ functionality from WebAssembly.
     cargo build --target=wasm32-wasi
     ```
 
-4. Run the generated WebAssembly in a runtime supporting [wasi-nn], e.g. [Wasmtime].
+4. Run the generated WebAssembly in a runtime supporting [wasi-nn], e.g., [Wasmtime].
 
 [Wasmtime]: https://wasmtime.dev
 
