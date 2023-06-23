@@ -65,12 +65,14 @@ impl Default for GraphBuilder {
 impl GraphBuilder {
     /// Create a new [```GraphBuilder```].
     #[inline(always)]
+    #[must_use]
     pub fn new(encoding: GraphEncoding, target: ExecutionTarget) -> Self {
         Self { encoding, target }
     }
 
     /// Set graph encoding.
     #[inline(always)]
+    #[must_use]
     pub fn encoding(mut self, encoding: GraphEncoding) -> Self {
         self.encoding = encoding;
         self
@@ -78,6 +80,7 @@ impl GraphBuilder {
 
     /// Set graph execution target.
     #[inline(always)]
+    #[must_use]
     pub fn execution_target(mut self, execution_target: ExecutionTarget) -> Self {
         self.target = execution_target;
         self
@@ -85,6 +88,7 @@ impl GraphBuilder {
 
     /// Set graph execution target to `CPU`.
     #[inline(always)]
+    #[must_use]
     pub fn cpu(mut self) -> Self {
         self.target = ExecutionTarget::CPU;
         self
@@ -92,6 +96,7 @@ impl GraphBuilder {
 
     /// Set graph execution target to `GPU`.
     #[inline(always)]
+    #[must_use]
     pub fn gpu(mut self) -> Self {
         self.target = ExecutionTarget::GPU;
         self
@@ -99,6 +104,7 @@ impl GraphBuilder {
 
     /// Set graph execution target to `TPU`.
     #[inline(always)]
+    #[must_use]
     pub fn tpu(mut self) -> Self {
         self.target = ExecutionTarget::TPU;
         self
@@ -110,7 +116,7 @@ impl GraphBuilder {
         B: AsRef<[u8]>,
     {
         let graph_builder_array: Vec<&[u8]> =
-            bytes_array.as_ref().iter().map(|s| s.as_ref()).collect();
+            bytes_array.as_ref().iter().map(AsRef::as_ref).collect();
         let graph_handle =
             syscall::load(graph_builder_array.as_slice(), self.encoding, self.target)?;
         Ok(Graph {
@@ -128,7 +134,7 @@ impl GraphBuilder {
         for file in files.as_ref() {
             graph_contents.push(std::fs::read(file).map_err(Into::<Error>::into)?);
         }
-        let graph_builder_array: Vec<&[u8]> = graph_contents.iter().map(|s| s.as_ref()).collect();
+        let graph_builder_array: Vec<&[u8]> = graph_contents.iter().map(AsRef::as_ref).collect();
         let graph_handle =
             syscall::load(graph_builder_array.as_slice(), self.encoding, self.target)?;
         Ok(Graph {
@@ -228,7 +234,7 @@ impl<'a> GraphExecutionContext<'a> {
         let data_slice = data.as_ref();
         let buf = unsafe {
             core::slice::from_raw_parts(
-                data_slice.as_ptr() as *const u8,
+                data_slice.as_ptr().cast::<u8>(),
                 data_slice.len() * std::mem::size_of::<T>(),
             )
         };
@@ -247,7 +253,7 @@ impl<'a> GraphExecutionContext<'a> {
     pub fn get_output<T: Sized>(&self, index: usize, out_buffer: &mut [T]) -> Result<usize, Error> {
         let out_buf = unsafe {
             core::slice::from_raw_parts_mut(
-                out_buffer.as_mut_ptr() as *mut u8,
+                out_buffer.as_mut_ptr().cast::<u8>(),
                 out_buffer.len() * std::mem::size_of::<T>(),
             )
         };
