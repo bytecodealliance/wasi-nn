@@ -40,9 +40,9 @@ WebAssembly, and run it in a WebAssembly runtime that supports the [wasi-nn] pro
    dependency; more information in the [Rust README].
  - In AssemblyScript, download the [package from npmjs.com][npmjs.com] by adding `"as-wasi-nn":
    "^0.3.0"` as an NPM dependency; more information in the [AssemblyScript README].
- - When you call wasmtime, you'll need to pass the flag `--wasi-modules=experimental-wasi-nn` to
+ - When you call Wasmtime, you'll need to pass the flag `--wasi-modules=experimental-wasi-nn` to
    enable the use use of wasi-nn.
- - For WasmEdge, you should install [wasi-nn plugin] first.  
+ - For WasmEdge, you should install the [wasi-nn plugin] first.
 
 [crates.io]: https://crates.io/crates/wasi-nn
 [Rust README]: rust/README.md
@@ -67,9 +67,9 @@ Once you have OpenVino installed, run them with:
 [AssemblyScript example]: assemblyscript/examples/object-classification.ts
 [Installation Guides]: https://docs.openvinotoolkit.org/latest/installation_guides.html
 
-WasmEdge also adopts wasi-nn spec, see [how to run wasi-nn examples in WasmEdge].
+To run examples in WasmEdge, consult this article: [WasmEdge wasi-nn examples].
 
-[how to run wasi-nn examples in WasmEdge]: https://github.com/second-state/WasmEdge-WASINN-examples
+[WasmEdge wasi-nn examples]: https://github.com/second-state/WasmEdge-WASINN-examples
 
 ### Related Links
 
