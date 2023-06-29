@@ -24,10 +24,11 @@
 This project provides high-level wasi-nn bindings for Rust and AssemblyScript. The basic idea: write
 your machine learning application in a high-level language using these bindings, compile it to
 WebAssembly, and run it in a WebAssembly runtime that supports the [wasi-nn] proposal, such as
-[Wasmtime].
+[Wasmtime] and [WasmEdge].
 
 [Wasmtime]: https://wasmtime.dev
 [wasi-nn]: https://github.com/WebAssembly/wasi-nn
+[WasmEdge]: https://github.com/WasmEdge/WasmEdge
 
 > __NOTE__: These bindings are experimental (use at your own risk) and subject to upstream changes
 > in the [wasi-nn] specification.
@@ -41,11 +42,13 @@ WebAssembly, and run it in a WebAssembly runtime that supports the [wasi-nn] pro
    "^0.3.0"` as an NPM dependency; more information in the [AssemblyScript README].
  - When you call wasmtime, you'll need to pass the flag `--wasi-modules=experimental-wasi-nn` to
    enable the use use of wasi-nn.
+ - For WasmEdge, you should install [wasi-nn plugin] first.  
 
 [crates.io]: https://crates.io/crates/wasi-nn
 [Rust README]: rust/README.md
 [npmjs.com]: https://www.npmjs.com/package/wasi-nn
 [AssemblyScript README]: assemblyscript/README.md
+[wasi-nn plugin]: https://wasmedge.org/docs/category/ai-inference
 
 ### Examples
 
@@ -64,11 +67,16 @@ Once you have OpenVino installed, run them with:
 [AssemblyScript example]: assemblyscript/examples/object-classification.ts
 [Installation Guides]: https://docs.openvinotoolkit.org/latest/installation_guides.html
 
+WasmEdge also adopts wasi-nn spec, see [how to run wasi-nn examples in WasmEdge].
+
+[how to run wasi-nn examples in WasmEdge]: https://github.com/second-state/WasmEdge-WASINN-examples
+
 ### Related Links
 
 - [WASI]
 - [wasi-nn]
 - [Wasmtime]
+- [WasmEdge]
 - [AssemblyScript]
 - [OpenVino]
 
