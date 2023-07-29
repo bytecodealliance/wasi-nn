@@ -13,6 +13,7 @@ pub enum GraphEncoding {
     Tensorflow,
     Pytorch,
     TensorflowLite,
+    Autodetec,
 }
 
 /// Define where the graph should be executed.
@@ -22,6 +23,7 @@ pub enum ExecutionTarget {
     CPU = 0,
     GPU,
     TPU,
+    AUTO,
 }
 
 /// A graph factory for configuring the properties of a new graph.
@@ -137,6 +139,16 @@ impl GraphBuilder {
         let graph_builder_array: Vec<&[u8]> = graph_contents.iter().map(AsRef::as_ref).collect();
         let graph_handle =
             syscall::load(graph_builder_array.as_slice(), self.encoding, self.target)?;
+        Ok(Graph {
+            build_info: self,
+            graph_handle,
+        })
+    }
+
+    #[inline(always)]
+    pub fn build_from_cache(self, name: &str) -> Result<Graph, Error>
+where {
+        let graph_handle = syscall::load_by_name(name)?;
         Ok(Graph {
             build_info: self,
             graph_handle,
@@ -277,6 +289,7 @@ impl<'a> Debug for GraphExecutionContext<'a> {
 mod syscall {
     use crate::generated::wasi_ephemeral_nn;
     use crate::{error::BackendError, tensor::Tensor, Error, ExecutionTarget, GraphEncoding};
+    use std::ffi::CString;
 
     pub(crate) type GraphHandle = i32;
     pub(crate) type GraphExecutionContextHandle = i32;
@@ -294,6 +307,26 @@ mod syscall {
                 graph_builder_array.len() as i32,
                 encoding as i32,
                 target as i32,
+                &mut graph_handle as *mut _ as i32,
+            )
+        };
+
+        if res == 0 {
+            Ok(graph_handle)
+        } else {
+            Err(Error::BackendError(BackendError::from(res)))
+        }
+    }
+
+    #[inline(always)]
+    pub(crate) fn load_by_name(name: &str) -> Result<GraphHandle, Error> {
+        let mut graph_handle = 0;
+        let name_cstring = CString::new(name.clone()).unwrap_or_default();
+        let name_ptr = name_cstring.as_ptr();
+        let res = unsafe {
+            wasi_ephemeral_nn::load_by_name(
+                name_ptr as i32,
+                name.len() as i32,
                 &mut graph_handle as *mut _ as i32,
             )
         };
