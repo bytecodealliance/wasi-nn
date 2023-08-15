@@ -22,6 +22,12 @@ pub enum BackendError {
     Busy,
     #[error("WASI-NN Backend Error: Runtime Error")]
     RuntimeError,
+    #[error("WASI-NN Backend Error: Unsupported Operation")]
+    UnsupportedOperation,
+    #[error("WASI-NN Backend Error: Too Large")]
+    TooLarge,
+    #[error("WASI-NN Backend Error: Not Found")]
+    NotFound,
     #[error("Unknown Wasi-NN Backend Error Code `{0}`")]
     UnknownError(i32),
 }
@@ -34,6 +40,9 @@ impl From<i32> for BackendError {
             3 => Self::MissingMemory,
             4 => Self::Busy,
             5 => Self::RuntimeError,
+            6 => Self::UnsupportedOperation,
+            7 => Self::TooLarge,
+            8 => Self::NotFound,
             _ => Self::UnknownError(value),
         }
     }
@@ -62,6 +71,9 @@ mod test {
         test_enum_eq!(3, BackendError, MissingMemory);
         test_enum_eq!(4, BackendError, Busy);
         test_enum_eq!(5, BackendError, RuntimeError);
+        test_enum_eq!(6, BackendError, UnsupportedOperation);
+        test_enum_eq!(7, BackendError, TooLarge);
+        test_enum_eq!(8, BackendError, NotFound);
     }
 
     #[test]

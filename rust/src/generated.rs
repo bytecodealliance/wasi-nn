@@ -14,6 +14,9 @@ pub const NN_ERRNO_INVALID_ENCODING: NnErrno = NnErrno(2);
 pub const NN_ERRNO_MISSING_MEMORY: NnErrno = NnErrno(3);
 pub const NN_ERRNO_BUSY: NnErrno = NnErrno(4);
 pub const NN_ERRNO_RUNTIME_ERROR: NnErrno = NnErrno(5);
+pub const NN_ERRNO_UNSUPPORTED_OPERATION: NnErrno = NnErrno(6);
+pub const NN_ERRNO_TOO_LARGE: NnErrno = NnErrno(7);
+pub const NN_ERRNO_NOT_FOUND: NnErrno = NnErrno(8);
 impl NnErrno {
     pub const fn raw(&self) -> u16 {
         self.0
@@ -27,6 +30,9 @@ impl NnErrno {
             3 => "MISSING_MEMORY",
             4 => "BUSY",
             5 => "RUNTIME_ERROR",
+            6 => "UNSUPPORTED_OPERATION",
+            7 => "TOO_LARGE",
+            8 => "NOT_FOUND",
             _ => unsafe { core::hint::unreachable_unchecked() },
         }
     }
@@ -38,6 +44,9 @@ impl NnErrno {
             3 => "",
             4 => "",
             5 => "",
+            6 => "",
+            7 => "",
+            8 => "",
             _ => unsafe { core::hint::unreachable_unchecked() },
         }
     }
@@ -123,6 +132,7 @@ pub const GRAPH_ENCODING_ONNX: GraphEncoding = GraphEncoding(1);
 pub const GRAPH_ENCODING_TENSORFLOW: GraphEncoding = GraphEncoding(2);
 pub const GRAPH_ENCODING_PYTORCH: GraphEncoding = GraphEncoding(3);
 pub const GRAPH_ENCODING_TENSORFLOWLITE: GraphEncoding = GraphEncoding(4);
+pub const GRAPH_ENCODING_AUTODETECT: GraphEncoding = GraphEncoding(5);
 impl GraphEncoding {
     pub const fn raw(&self) -> u8 {
         self.0
@@ -135,6 +145,7 @@ impl GraphEncoding {
             2 => "TENSORFLOW",
             3 => "PYTORCH",
             4 => "TENSORFLOWLITE",
+            5 => "AUTODETECT",
             _ => unsafe { core::hint::unreachable_unchecked() },
         }
     }
@@ -145,6 +156,7 @@ impl GraphEncoding {
             2 => "",
             3 => "",
             4 => "",
+            5 => "",
             _ => unsafe { core::hint::unreachable_unchecked() },
         }
     }
@@ -217,6 +229,19 @@ pub unsafe fn load(
     }
 }
 
+pub unsafe fn load_by_name(name: &str) -> Result<Graph, NnErrno> {
+    let mut rp0 = MaybeUninit::<Graph>::uninit();
+    let ret = wasi_ephemeral_nn::load_by_name(
+        name.as_ptr() as i32,
+        name.len() as i32,
+        rp0.as_mut_ptr() as i32,
+    );
+    match ret {
+        0 => Ok(core::ptr::read(rp0.as_mut_ptr() as i32 as *const Graph)),
+        _ => Err(NnErrno(ret as u16)),
+    }
+}
+
 pub unsafe fn init_execution_context(graph: Graph) -> Result<GraphExecutionContext, NnErrno> {
     let mut rp0 = MaybeUninit::<GraphExecutionContext>::uninit();
     let ret = wasi_ephemeral_nn::init_execution_context(graph as i32, rp0.as_mut_ptr() as i32);
@@ -273,6 +298,7 @@ pub mod wasi_ephemeral_nn {
     #[link(wasm_import_module = "wasi_ephemeral_nn")]
     extern "C" {
         pub fn load(arg0: i32, arg1: i32, arg2: i32, arg3: i32, arg4: i32) -> i32;
+        pub fn load_by_name(arg0: i32, arg1: i32, arg2: i32) -> i32;
         pub fn init_execution_context(arg0: i32, arg1: i32) -> i32;
         pub fn set_input(arg0: i32, arg1: i32, arg2: i32) -> i32;
         pub fn get_output(arg0: i32, arg1: i32, arg2: i32, arg3: i32, arg4: i32) -> i32;
