@@ -35,8 +35,32 @@ pub fn convert_image_to_bytes(
         .map_err(|_| format!("Failed to decode the file: {:?}", path))
         .unwrap();
 
+    covert_dynamic_image_bytes_to_tensor_bytes(decoded, width, height, precision, order)
+}
+
+// standard 8bit RGB format. It should work with standard image formats such as .jpg, .png, etc
+pub fn convert_image_bytes_to_tensor_bytes(
+    bytes: &[u8],
+    width: u32,
+    height: u32,
+    precision: TensorType,
+    order: ColorOrder,
+) -> Result<Vec<u8>, String> {
+    // Create the DynamicImage by decoding the image.
+    let decoded = image::load_from_memory(bytes).expect("Unable to load image from bytes.");
+
+    covert_dynamic_image_bytes_to_tensor_bytes(decoded, width, height, precision, order)
+}
+
+pub fn covert_dynamic_image_bytes_to_tensor_bytes(
+    image: DynamicImage,
+    width: u32,
+    height: u32,
+    precision: TensorType,
+    order: ColorOrder,
+) -> Result<Vec<u8>, String> {
     // Resize the image to the specified W/H and get an array of u8 RGB values.
-    let dyn_img: DynamicImage = decoded.resize_exact(width, height, image::imageops::Triangle);
+    let dyn_img: DynamicImage = image.resize_exact(width, height, image::imageops::Triangle);
     let mut img_bytes = dyn_img.into_bytes();
 
     // Get an array of the pixel values and return it.
