@@ -35,7 +35,7 @@ pub fn convert_image_to_bytes(
         .map_err(|_| format!("Failed to decode the file: {:?}", path))
         .unwrap();
 
-    covert_dynamic_image_bytes_to_tensor_bytes(decoded, width, height, precision, order)
+    convert_dynamic_image_bytes_to_tensor_bytes(decoded, width, height, precision, order)
 }
 
 // standard 8bit RGB format. It should work with standard image formats such as .jpg, .png, etc
@@ -49,10 +49,10 @@ pub fn convert_image_bytes_to_tensor_bytes(
     // Create the DynamicImage by decoding the image.
     let decoded = image::load_from_memory(bytes).expect("Unable to load image from bytes.");
 
-    covert_dynamic_image_bytes_to_tensor_bytes(decoded, width, height, precision, order)
+    convert_dynamic_image_bytes_to_tensor_bytes(decoded, width, height, precision, order)
 }
 
-pub fn covert_dynamic_image_bytes_to_tensor_bytes(
+pub fn convert_dynamic_image_bytes_to_tensor_bytes(
     image: DynamicImage,
     width: u32,
     height: u32,
