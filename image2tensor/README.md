@@ -1,14 +1,27 @@
-### Image2Tensor
+### `image2tensor`
 
-This package provides several helper functions for converting images to tensors.
+This package provides several helper functions for converting images to tensors. It is designed
+primarily for the `wasm32-wasi` target.
 
 ### Use
 
-- `calculate_buffer_size(width, height, precision)` : Given the width, height, and precision of your desired tensor, it will return the number of bytes you need to allocate. This is used to determine the size of the array you need to allocate for the output buffer you pass to convert_image.
-- `convert_image_to_bytes(path, width, height, precision, order)` : Will convert the image located at the path into a byte array with the requested dimensions and precision. NOTE: This currently only works with images that are in standard 8bit RGB color format.
+- `calculate_buffer_size(width, height, precision)`: given the width, height, and precision of your
+  desired tensor, it will return the number of bytes you need to allocate. This is useful to
+  determine the size of the array you need to allocate for the output buffer you pass to
+  convert_image.
+- `convert_image_to_bytes(path, width, height, precision, order)`: convert the image located at the
+  path into a byte array with the requested dimensions and precision. NOTE: This currently only
+  works with images that are in standard 8bit RGB color format.
+
+### Build
+
+```console
+$ cargo build --target wasm32-wasi
+```
 
 ### Examples
-```
+
+```rust
 use image2tensor;
 let width: u32 = 224;
 let height: u32 = 224;
