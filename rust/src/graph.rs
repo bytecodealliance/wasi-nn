@@ -247,7 +247,7 @@ impl<'a> GraphExecutionContext<'a> {
         let buf = unsafe {
             core::slice::from_raw_parts(
                 data_slice.as_ptr().cast::<u8>(),
-                data_slice.len() * std::mem::size_of::<T>(),
+                std::mem::size_of_val(data_slice),
             )
         };
         let tensor_for_call = Tensor::new(dimensions, tensor_type, buf);
@@ -266,7 +266,7 @@ impl<'a> GraphExecutionContext<'a> {
         let out_buf = unsafe {
             core::slice::from_raw_parts_mut(
                 out_buffer.as_mut_ptr().cast::<u8>(),
-                out_buffer.len() * std::mem::size_of::<T>(),
+                std::mem::size_of_val(out_buffer),
             )
         };
         syscall::get_output(self.ctx_handle, index, out_buf)

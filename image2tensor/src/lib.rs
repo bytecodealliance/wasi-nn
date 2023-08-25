@@ -26,13 +26,13 @@ pub fn convert_image_to_bytes(
 ) -> Result<Vec<u8>, String> {
     // Open the file and create the reader.
     let raw_file = Reader::open(path)
-        .or_else(|_| Err(format!("Failed to open the file: {:?}", path)))
+        .map_err(|_| format!("Failed to open the file: {:?}", path))
         .unwrap();
 
     // Create the DynamicImage by decoding the image.
     let decoded = raw_file
         .decode()
-        .or_else(|_| Err(format!("Failed to decode the file: {:?}", path)))
+        .map_err(|_| format!("Failed to decode the file: {:?}", path))
         .unwrap();
 
     // Resize the image to the specified W/H and get an array of u8 RGB values.
@@ -53,21 +53,20 @@ pub fn calculate_buffer_size(width: u32, height: u32, precision: TensorType) -> 
 }
 
 // Save the bytes into the specified TensorType format.
-fn save_bytes(arr: &[u8], tt: TensorType) -> Vec<u8> {
+fn save_bytes(buffer: &[u8], tt: TensorType) -> Vec<u8> {
     let mut out: Vec<u8> = vec![];
 
-    for i in 0..arr.len() {
+    for &byte in buffer {
         // Split out the bytes based on the TensorType.
-        let bytes: Vec<u8>;
-        bytes = match tt {
-            TensorType::F16 => (arr[i] as f32).to_ne_bytes().to_vec(),
-            TensorType::F32 => (arr[i] as f32).to_ne_bytes().to_vec(),
-            TensorType::U8 => (arr[i]).to_ne_bytes().to_vec(),
-            TensorType::I32 => (arr[i] as i32).to_ne_bytes().to_vec(),
+        let ne_bytes = match tt {
+            TensorType::F16 => (byte as f32).to_ne_bytes().to_vec(),
+            TensorType::F32 => (byte as f32).to_ne_bytes().to_vec(),
+            TensorType::U8 => (byte).to_ne_bytes().to_vec(),
+            TensorType::I32 => (byte as i32).to_ne_bytes().to_vec(),
         };
 
-        for j in 0..bytes.len() {
-            out.push(bytes[j]);
+        for byte in ne_bytes {
+            out.push(byte);
         }
     }
     out
@@ -82,12 +81,9 @@ fn get_bytes_per_pixel(precision: TensorType) -> usize {
 }
 
 // Converts an RGB array to BGR
-fn rgb_to_bgr(arr: &mut [u8]) -> &[u8] {
-    for i in (0..arr.len()).step_by(3) {
-        let b_bak = arr[i + 2];
-        // swap R and B
-        arr[i + 2] = arr[i];
-        arr[i] = b_bak;
+fn rgb_to_bgr(buffer: &mut [u8]) -> &[u8] {
+    for i in (0..buffer.len()).step_by(3) {
+        buffer.swap(i + 2, i);
     }
-    arr
+    buffer
 }
