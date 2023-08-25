@@ -11,4 +11,21 @@ edition = "2018"
 publish = true
 
 [dependencies]
-image = { version = "0.24.4", default-features = false, features = ["gif", "jpeg", "ico", "png", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt", "dds", "farbfeld"]  }
+image = { version = "0.24.4", default-features = false, features = [
+    "gif",
+    "jpeg",
+    "ico",
+    "png",
+    "pnm",
+    "tga",
+    "tiff",
+    "webp",
+    "bmp",
+    "hdr",
+    "dxt",
+    "dds",
+    "farbfeld",
+] }
+
+[package.metadata.docs.rs]
+targets = ["wasm32-wasi"]

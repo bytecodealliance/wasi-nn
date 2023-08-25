@@ -12,11 +12,7 @@ readme = "README.md"
 edition = "2018"
 publish = true
 
-exclude = [
-    "examples",
-    "scripts",
-    "Cargo.lock",
-]
+exclude = ["examples", "scripts", "Cargo.lock"]
 
 [package.metadata.docs.rs]
 targets = ["wasm32-wasi"]

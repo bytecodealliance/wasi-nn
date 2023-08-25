@@ -42,7 +42,7 @@ functionality from WebAssembly.
 
 ### Build
 
-To build this crate from source, use: `cargo build`.
+To build this crate from source, use: `cargo build --target wasm32-wasi`.
 
 
 ### Generation
