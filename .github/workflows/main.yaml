@@ -14,9 +14,6 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-        with:
-          submodules: recursive
-          lfs: true
 
       # Install OpenVINO
       - name: Install OpenVINO
@@ -50,22 +47,41 @@ jobs:
           cd assemblyscript
           npm publish --dry-run
 
-      # Test we can publish to crates.io
-      - name: Publish crates.io dryrun
-        run: |
-          echo Publish crates.io dryrun
-          cd rust
-          cargo publish --dry-run
+  rust:
+    name: Build and test the Rust bindings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: rustup target add wasm32-wasi
+      - name: Run tests on native architecture
+        working-directory: rust
+        run: cargo test
+      - name: Build on wasm32-wasi
+        working-directory: rust
+        run: cargo build --target=wasm32-wasi
+      - name: Check dry-run publish to crates.io
+        working-directory: rust
+        run: cargo publish --dry-run
 
   check_bindings:
     name: Regenerate Rust bindings
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-        with:
-          submodules: recursive
-          lfs: true
       - name: Regenerate bindings
         run: rust/scripts/regenerate-bindings-from-witx.sh
       - name: Verify no changes
         run: git diff --ignore-submodules --no-ext-diff --name-only --exit-code
+
+  image2tensor:
+    name: Build the image2tensor crate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: rustup target add wasm32-wasi
+      - name: Build for wasm32-wasi
+        working-directory: image2tensor
+        run: cargo build --target=wasm32-wasi
+      - name: Check dry-run publish to crates.io
+        working-directory: image2tensor
+        run: cargo publish --dry-run
