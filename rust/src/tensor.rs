@@ -6,8 +6,10 @@
 pub enum TensorType {
     F16 = 0,
     F32,
+    F64,
     U8,
     I32,
+    I64,
 }
 
 impl TensorType {
@@ -17,6 +19,7 @@ impl TensorType {
             Self::U8 => 1,
             Self::F16 => 2,
             Self::F32 | Self::I32 => 4,
+            Self::F64 | Self::I64 => 8,
         }
     }
 }
@@ -49,8 +52,10 @@ mod test {
     fn test_enum_tensor_type() {
         assert_eq!(TensorType::F16 as u32, 0);
         assert_eq!(TensorType::F32 as u32, 1);
-        assert_eq!(TensorType::U8 as u32, 2);
-        assert_eq!(TensorType::I32 as u32, 3);
+        assert_eq!(TensorType::F64 as u32, 2);
+        assert_eq!(TensorType::U8 as u32, 3);
+        assert_eq!(TensorType::I32 as u32, 4);
+        assert_eq!(TensorType::I64 as u32, 5);
     }
 
     #[test]
@@ -64,12 +69,20 @@ mod test {
             generated::TENSOR_TYPE_F32.raw() as u32
         );
         assert_eq!(
+            TensorType::F64 as u32,
+            generated::TENSOR_TYPE_F64.raw() as u32
+        );
+        assert_eq!(
             TensorType::U8 as u32,
             generated::TENSOR_TYPE_U8.raw() as u32
         );
         assert_eq!(
             TensorType::I32 as u32,
             generated::TENSOR_TYPE_I32.raw() as u32
+        );
+        assert_eq!(
+            TensorType::I64 as u32,
+            generated::TENSOR_TYPE_I64.raw() as u32
         );
     }
 

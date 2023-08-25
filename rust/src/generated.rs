@@ -77,8 +77,10 @@ pub type TensorDimensions<'a> = &'a [u32];
 pub struct TensorType(u8);
 pub const TENSOR_TYPE_F16: TensorType = TensorType(0);
 pub const TENSOR_TYPE_F32: TensorType = TensorType(1);
-pub const TENSOR_TYPE_U8: TensorType = TensorType(2);
-pub const TENSOR_TYPE_I32: TensorType = TensorType(3);
+pub const TENSOR_TYPE_F64: TensorType = TensorType(2);
+pub const TENSOR_TYPE_U8: TensorType = TensorType(3);
+pub const TENSOR_TYPE_I32: TensorType = TensorType(4);
+pub const TENSOR_TYPE_I64: TensorType = TensorType(5);
 impl TensorType {
     pub const fn raw(&self) -> u8 {
         self.0
@@ -88,8 +90,10 @@ impl TensorType {
         match self.0 {
             0 => "F16",
             1 => "F32",
-            2 => "U8",
-            3 => "I32",
+            2 => "F64",
+            3 => "U8",
+            4 => "I32",
+            5 => "I64",
             _ => unsafe { core::hint::unreachable_unchecked() },
         }
     }
@@ -99,6 +103,8 @@ impl TensorType {
             1 => "",
             2 => "",
             3 => "",
+            4 => "",
+            5 => "",
             _ => unsafe { core::hint::unreachable_unchecked() },
         }
     }

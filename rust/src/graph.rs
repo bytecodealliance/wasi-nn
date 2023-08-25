@@ -424,6 +424,10 @@ mod syscall {
         unimplemented!("this crate is only intended to be used with `--target=wasm32-wasi`");
     }
 
+    pub(crate) fn load_by_name(_: &str) -> Result<GraphHandle, Error> {
+        unimplemented!("this crate is only intended to be used with `--target=wasm32-wasi`");
+    }
+
     pub(crate) fn init_execution_context(
         _: GraphHandle,
     ) -> Result<GraphExecutionContextHandle, Error> {
