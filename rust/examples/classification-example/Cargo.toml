@@ -7,7 +7,7 @@ edition = "2018"
 publish = false
 
 [dependencies]
-wasi-nn = { path = "../../", version = "0.5" }
+wasi-nn = { path = "../../" }
 image2tensor = { path = "../../../image2tensor" }
 
 # This crate is built with the wasm32-wasi target, so it's separate

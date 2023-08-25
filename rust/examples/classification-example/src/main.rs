@@ -25,7 +25,7 @@ pub fn main() {
         let filename: String = format!("{}{}{}", "fixture/images/", i, ".jpg");
         // Convert the image. If it fails just exit
         let tensor_data =
-            convert_image_to_bytes(&filename, 224, 224, TensorType::F32, ColorOrder::BGR)
+            convert_image_to_tensor_bytes(&filename, 224, 224, TensorType::F32, ColorOrder::BGR)
                 .or_else(|e| Err(e))
                 .unwrap();
 
