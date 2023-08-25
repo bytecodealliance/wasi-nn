@@ -14,10 +14,10 @@ pub enum ColorOrder {
     BGR,
 }
 
-// Take the image located at 'path', open it, resize it to height x width, and then converts
-// the pixel precision to the type requested. NOTE: this function assumes the image is in
-// standard 8bit RGB format. It should work with standard image formats such as .jpg, .png, etc
-pub fn convert_image_to_bytes(
+// Take the image located at 'path', open it, resize it to `height` x `width`, and then convert the
+// pixel precision to the type requested. NOTE: this function assumes the image is in standard 8-bit
+// RGB format. It should work with standard image formats such as `.jpg`, `.png`, etc.
+pub fn convert_image_to_tensor_bytes(
     path: &str,
     width: u32,
     height: u32,
@@ -35,10 +35,10 @@ pub fn convert_image_to_bytes(
         .map_err(|_| format!("Failed to decode the file: {:?}", path))
         .unwrap();
 
-    convert_dynamic_image_bytes_to_tensor_bytes(decoded, width, height, precision, order)
+    convert_dynamic_image_to_tensor_bytes(decoded, width, height, precision, order)
 }
 
-// standard 8bit RGB format. It should work with standard image formats such as .jpg, .png, etc
+/// Same as [convert_image_to_bytes] but accepts a `bytes` slice instead.
 pub fn convert_image_bytes_to_tensor_bytes(
     bytes: &[u8],
     width: u32,
@@ -49,10 +49,10 @@ pub fn convert_image_bytes_to_tensor_bytes(
     // Create the DynamicImage by decoding the image.
     let decoded = image::load_from_memory(bytes).expect("Unable to load image from bytes.");
 
-    convert_dynamic_image_bytes_to_tensor_bytes(decoded, width, height, precision, order)
+    convert_dynamic_image_to_tensor_bytes(decoded, width, height, precision, order)
 }
 
-pub fn convert_dynamic_image_bytes_to_tensor_bytes(
+fn convert_dynamic_image_to_tensor_bytes(
     image: DynamicImage,
     width: u32,
     height: u32,
@@ -70,13 +70,15 @@ pub fn convert_dynamic_image_bytes_to_tensor_bytes(
     }
 }
 
+/// Calculate the expected tensor data size of an image of `width` x `height` with the given
+/// `precision`.
 pub fn calculate_buffer_size(width: u32, height: u32, precision: TensorType) -> usize {
     let bytes_per_pixel = get_bytes_per_pixel(precision);
     let pixels: u32 = width * height * 3;
     pixels as usize * bytes_per_pixel
 }
 
-// Save the bytes into the specified TensorType format.
+/// Save the bytes into the specified TensorType format.
 fn save_bytes(buffer: &[u8], tt: TensorType) -> Vec<u8> {
     let mut out: Vec<u8> = vec![];
 
@@ -104,7 +106,7 @@ fn get_bytes_per_pixel(precision: TensorType) -> usize {
     }
 }
 
-// Converts an RGB array to BGR
+/// Converts an RGB array to BGR.
 fn rgb_to_bgr(buffer: &mut [u8]) -> &[u8] {
     for i in (0..buffer.len()).step_by(3) {
         buffer.swap(i + 2, i);
