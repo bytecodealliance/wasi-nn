@@ -38,7 +38,7 @@ pub fn convert_image_to_tensor_bytes(
     convert_dynamic_image_to_tensor_bytes(decoded, width, height, precision, order)
 }
 
-/// Same as [convert_image_to_bytes] but accepts a `bytes` slice instead.
+/// Same as [convert_image_to_tensor_bytes] but accepts a `bytes` slice instead.
 pub fn convert_image_bytes_to_tensor_bytes(
     bytes: &[u8],
     width: u32,
