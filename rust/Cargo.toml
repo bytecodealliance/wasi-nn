@@ -1,6 +1,6 @@
 [package]
 name = "wasi-nn"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["The Bytecode Alliance Developers"]
 description = "High-level Rust bindings for wasi-nn"
 license = "Apache-2.0"

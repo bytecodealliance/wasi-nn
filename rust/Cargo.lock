@@ -59,7 +59,7 @@ checksum = "b15811caf2415fb889178633e7724bad2509101cde276048e013b9def5e51fa0"
 
 [[package]]
 name = "wasi-nn"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "thiserror",
 ]
