@@ -59,7 +59,7 @@ fn save_bytes(buffer: &[u8], tt: TensorType) -> Vec<u8> {
     for &byte in buffer {
         // Split out the bytes based on the TensorType.
         let ne_bytes = match tt {
-            TensorType::F16 => (byte as f32).to_ne_bytes().to_vec(),
+            TensorType::F16 => todo!("unable to convert to f16 yet"),
             TensorType::F32 => (byte as f32).to_ne_bytes().to_vec(),
             TensorType::U8 => (byte).to_ne_bytes().to_vec(),
             TensorType::I32 => (byte as i32).to_ne_bytes().to_vec(),
