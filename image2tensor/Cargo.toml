@@ -11,7 +11,7 @@ edition = "2018"
 publish = true
 
 [dependencies]
-image = { version = "0.24.4", default-features = false, features = [
+image = { version = "0.24", default-features = false, features = [
     "gif",
     "jpeg",
     "ico",
