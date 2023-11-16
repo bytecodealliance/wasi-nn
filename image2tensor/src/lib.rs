@@ -35,7 +35,39 @@ pub fn convert_image_to_tensor_bytes(
         .map_err(|_| format!("Failed to decode the file: {:?}", path))
         .unwrap();
 
-    convert_dynamic_image_to_tensor_bytes(decoded, width, height, precision, order)
+    convert_dynamic_image_to_tensor_bytes(
+        decoded, width, height, precision, order, false, true, false,
+    )
+}
+
+// Take the image located at 'path', open it, resize it to `height` x `width`, filter out alpha
+// channel if `alpha`` is false, normalize to [0, 1] if `normalize` is true, and then convert the
+// pixel precision to the type requested in planar (not interleave) format. NOTE: this function
+// assumes the image is in standard 8-bit RGB format. It should work with standard image formats
+// such as `.jpg`, `.png`, etc.
+pub fn convert_image_to_planar_tensor_bytes(
+    path: &str,
+    width: u32,
+    height: u32,
+    precision: TensorType,
+    order: ColorOrder,
+    normalize: bool,
+    alpha: bool,
+) -> Result<Vec<u8>, String> {
+    // Open the file and create the reader.
+    let raw_file = Reader::open(path)
+        .map_err(|_| format!("Failed to open the file: {:?}", path))
+        .unwrap();
+
+    // Create the DynamicImage by decoding the image.
+    let decoded = raw_file
+        .decode()
+        .map_err(|_| format!("Failed to decode the file: {:?}", path))
+        .unwrap();
+
+    convert_dynamic_image_to_tensor_bytes(
+        decoded, width, height, precision, order, normalize, alpha, true,
+    )
 }
 
 /// Same as [convert_image_to_tensor_bytes] but accepts a `bytes` slice instead.
@@ -49,7 +81,9 @@ pub fn convert_image_bytes_to_tensor_bytes(
     // Create the DynamicImage by decoding the image.
     let decoded = image::load_from_memory(bytes).expect("Unable to load image from bytes.");
 
-    convert_dynamic_image_to_tensor_bytes(decoded, width, height, precision, order)
+    convert_dynamic_image_to_tensor_bytes(
+        decoded, width, height, precision, order, false, true, false,
+    )
 }
 
 fn convert_dynamic_image_to_tensor_bytes(
@@ -58,16 +92,35 @@ fn convert_dynamic_image_to_tensor_bytes(
     height: u32,
     precision: TensorType,
     order: ColorOrder,
+    normalize: bool,
+    alpha: bool,
+    planar: bool,
 ) -> Result<Vec<u8>, String> {
     // Resize the image to the specified W/H and get an array of u8 RGB values.
     let dyn_img: DynamicImage = image.resize_exact(width, height, image::imageops::Triangle);
-    let mut img_bytes = dyn_img.into_bytes();
+    let mut img_bytes: Vec<u8> = dyn_img.into_bytes();
 
-    // Get an array of the pixel values and return it.
-    match order {
-        ColorOrder::RGB => Ok(save_bytes(&img_bytes, precision)),
-        ColorOrder::BGR => Ok(save_bytes(rgb_to_bgr(&mut img_bytes), precision)),
+    let channels = match alpha {
+        true => 4,
+        false => 3,
+    };
+
+    if matches!(order, ColorOrder::BGR) {
+        rgb_to_bgr(&mut img_bytes, channels);
     }
+
+    // TODO: Read channel number from source image.
+    if planar {
+        img_bytes = interleave_to_planar(&img_bytes, 4, width as usize * height as usize);
+    }
+
+    // TODO: Filter out alpha channel for interleave format.
+
+    Ok(save_bytes(
+        &img_bytes[..width as usize * height as usize * channels],
+        precision,
+        normalize,
+    ))
 }
 
 /// Calculate the expected tensor data size of an image of `width` x `height` with the given
@@ -79,14 +132,20 @@ pub fn calculate_buffer_size(width: u32, height: u32, precision: TensorType) -> 
 }
 
 /// Save the bytes into the specified TensorType format.
-fn save_bytes(buffer: &[u8], tt: TensorType) -> Vec<u8> {
+fn save_bytes(buffer: &[u8], tt: TensorType, normalize: bool) -> Vec<u8> {
     let mut out: Vec<u8> = vec![];
 
     for &byte in buffer {
         // Split out the bytes based on the TensorType.
         let ne_bytes = match tt {
             TensorType::F16 => todo!("unable to convert to f16 yet"),
-            TensorType::F32 => (byte as f32).to_ne_bytes().to_vec(),
+            TensorType::F32 => {
+                let value = match normalize {
+                    true => (byte as f32) / 255.0 as f32,
+                    false => byte as f32,
+                };
+                value.to_ne_bytes().to_vec()
+            }
             TensorType::U8 => (byte).to_ne_bytes().to_vec(),
             TensorType::I32 => (byte as i32).to_ne_bytes().to_vec(),
         };
@@ -107,9 +166,30 @@ fn get_bytes_per_pixel(precision: TensorType) -> usize {
 }
 
 /// Converts an RGB array to BGR.
-fn rgb_to_bgr(buffer: &mut [u8]) -> &[u8] {
-    for i in (0..buffer.len()).step_by(3) {
+fn rgb_to_bgr(buffer: &mut [u8], channels: usize) -> &[u8] {
+    for i in (0..buffer.len()).step_by(channels) {
         buffer.swap(i + 2, i);
     }
     buffer
+}
+
+fn interleave_to_planar(buffer: &[u8], channels: usize, pixels: usize) -> Vec<u8> {
+    println!(
+        "interleave_to_planar, buffer size {}, channels: {}, pixels: {}.",
+        buffer.len(),
+        channels,
+        pixels
+    );
+    let mut out: Vec<u8> = Vec::with_capacity(buffer.len());
+    unsafe {
+        out.set_len(buffer.len());
+    }
+    let mut offset = 0;
+    for i in (0..buffer.len()).step_by(channels) {
+        for c in 0..channels {
+            out[pixels * c + offset] = buffer[i + c];
+        }
+        offset += 1;
+    }
+    out
 }
