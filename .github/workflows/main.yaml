@@ -17,7 +17,7 @@ jobs:
 
       # Install OpenVINO
       - name: Install OpenVINO
-        uses: abrown/install-openvino-action@v3
+        uses: abrown/install-openvino-action@v8
 
       - name: Build Wasmtime + wasi-nn
         run: |
