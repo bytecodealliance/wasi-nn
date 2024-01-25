@@ -101,7 +101,7 @@ dependencies = [
 
 [[package]]
 name = "image2tensor"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "image",
 ]
