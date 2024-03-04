@@ -65,7 +65,7 @@ Once you have OpenVino installed, run them with:
 
 [Rust example]: rust/examples/classification-example
 [AssemblyScript example]: assemblyscript/examples/object-classification.ts
-[Installation Guides]: https://docs.openvinotoolkit.org/latest/installation_guides.html
+[Installation Guides]: https://docs.openvino.ai/2023.3/openvino_docs_install_guides_overview.html
 
 To run examples in WasmEdge, consult this article: [WasmEdge wasi-nn examples].
 
