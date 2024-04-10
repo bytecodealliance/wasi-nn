@@ -69,7 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Regenerate bindings
-        run: rust/scripts/regenerate-bindings-from-witx.sh
+        run: rust/scripts/regenerate-bindings-from-wit.sh
       - name: Verify no changes
         run: git diff --ignore-submodules --no-ext-diff --name-only --exit-code
 

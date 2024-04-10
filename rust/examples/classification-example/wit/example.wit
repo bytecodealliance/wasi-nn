@@ -1,0 +1,5 @@
+package wasi-nn:example;
+
+world classification-world {                                 
+  export run-classification: func();
+}

@@ -17,19 +17,28 @@
 //!     // as u8, f32, etc.
 //!     let input = vec![0f32; 224 * 224 * 3];
 //!     let input_dim = vec![1, 224, 224, 3];
-//!     let mut output_buffer = vec![0f32; 1001];
 //!
 //!     // Build a tflite graph from a file and set an input tensor.
-//!     let graph = GraphBuilder::new(GraphEncoding::TensorflowLite, ExecutionTarget::CPU).build_from_files([model_path])?;
-//!     let mut ctx = graph.init_execution_context()?;
+//!     let graph = wasi_nn::graph::load(
+//!            &builders,
+//!            wasi_nn::graph::GraphEncoding::TensorflowLite,
+//!            wasi_nn::graph::ExecutionTarget::Cpu,
+//!     )?;
+//!     let ctx = wasi_nn::inference::init_execution_context(graph)?;
 //!     ctx.set_input(0, TensorType::F32, &input_dim, &input)?;
+//!     let tensor = wasi_nn::tensor::Tensor {
+//!         dimensions: input_dim,
+//!         tensor_type: wasi_nn::tensor::TensorType::Fp32,
+//!         data: input,
+//!     };
+//!
+//!     wasi_nn::inference::set_input(context, 0, &tensor)?;
 //!
 //!     // Do the inference.
-//!     ctx.compute()?;
+//!     wasi_nn::inference::compute(context)?;
 //!
 //!     // Copy output to abuffer.
-//!     let output_bytes = ctx.get_output(0, &mut output_buffer)?;
-//!     assert_eq!(output_bytes, output_buffer.len() * std::mem::size_of::<f32>());
+//!     let output_bytes = wasi_nn::inference::get_output(context, 0)?;
 //!     Ok(())
 //! }
 //! ```
@@ -39,16 +48,10 @@
 //! This crate is experimental and will change to adapt the upstream [wasi-nn
 //! proposal](https://github.com/WebAssembly/wasi-nn/).
 //!
-//! Now version is based on git commit ```f47f35c00c946cb0e3229f11f288bda9d3d12cff```
+//! Now version is based on git commit ```e2310b860db2ff1719c9d69816099b87e85fabdb```
 //!
 
 #[allow(unused)]
 mod generated;
 
-mod error;
-mod graph;
-mod tensor;
-
-pub use error::Error;
-pub use graph::{ExecutionTarget, Graph, GraphBuilder, GraphEncoding, GraphExecutionContext};
-pub use tensor::TensorType;
+pub use crate::generated::wasi::nn::*;
