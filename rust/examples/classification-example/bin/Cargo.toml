@@ -1,0 +1,16 @@
+[package]
+name = "wasi-nn-example-bin"
+version = "0.19.0"
+authors = ["The Bytecode Alliance Developers"]
+readme = "README.md"
+edition = "2018"
+publish = false
+
+[dependencies]
+#wasi-nn = { path = "../../" }
+wasmtime = { git = "https://github.com/bytecodealliance/wasmtime.git", branch="main", features = ["component-model"] }
+wasmtime-wasi = { git = "https://github.com/bytecodealliance/wasmtime.git", branch="main"}
+wasmtime-wasi-nn = { git = "https://github.com/bytecodealliance/wasmtime.git", branch="main" }
+wasi-common =  { git = "https://github.com/bytecodealliance/wasmtime.git", branch="main" }
+anyhow = "1.0.71"
+cap-std = "3.0.0"
