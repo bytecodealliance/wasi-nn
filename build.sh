@@ -34,7 +34,7 @@ else
                 pushd build
                 wget --no-clobber --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.bin
                 wget --no-clobber --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.xml
-                wasmtime run --mapdir fixture::$RUST_BUILD_DIR wasi-nn-example.wasm --wasi-modules=experimental-wasi-nn
+                wasmtime run --dir $RUST_BUILD_DIR::fixture -S nn wasi-nn-example.wasm
             ;;
             *)
                 echo "Unknown build type $BUILD_TYPE"
