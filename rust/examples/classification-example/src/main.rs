@@ -1,77 +1,122 @@
-use image2tensor::*;
+#![allow(unused_braces)]
+use image::ImageReader;
+use image::{DynamicImage, RgbImage};
+use ndarray::{Array, Dim};
 use std::fs;
-use wasi_nn;
-mod imagenet_classes;
+use std::io::BufRead;
 
-pub fn main() {
-    let xml = fs::read_to_string("fixture/mobilenet.xml").unwrap();
-    println!("Read graph XML, first 50 characters: {}", &xml[..50]);
+const IMG_PATH: &str = "fixture/images/dog.jpg";
 
-    let weights = fs::read("fixture/mobilenet.bin").unwrap();
-    println!("Read graph weights, size in bytes: {}", weights.len());
+use wasi_nn::{
+    graph::{Graph, GraphBuilder, load, ExecutionTarget, GraphEncoding},
+    tensor::{Tensor, TensorData, TensorDimensions, TensorType},
+};
 
-    // Default is `Openvino` + `CPU`.
-    let graph = wasi_nn::GraphBuilder::default()
-        .build_from_bytes([xml.into_bytes(), weights])
-        .unwrap();
-    println!("Loaded graph into wasi-nn with ID: {:?}", graph);
+fn main() {
+    // Load the ONNX model - SqueezeNet 1.1-7
+    // Full details: https://github.com/onnx/models/tree/main/vision/classification/squeezenet
+    let model: GraphBuilder = fs::read("fixture/models/squeezenet1.1-7.onnx").unwrap();
+    println!("Read ONNX model, size in bytes: {}", model.len());
 
-    let mut context = graph.init_execution_context().unwrap();
-    println!("Created wasi-nn execution context with ID: {:?}", context);
+    let graph = load(&[model], GraphEncoding::Onnx, ExecutionTarget::Cpu).unwrap();
+    println!("Loaded graph into wasi-nn");
 
-    // Load a tensor that precisely matches the graph input tensor (see
-    // `fixture/frozen_inference_graph.xml`).
-    for i in 0..5 {
-        let filename: String = format!("{}{}{}", "fixture/images/", i, ".jpg");
-        // Convert the image. If it fails just exit
-        let tensor_data =
-            convert_image_to_tensor_bytes(&filename, 224, 224, TensorType::F32, ColorOrder::BGR)
-                .or_else(|e| Err(e))
-                .unwrap();
+    let exec_context = Graph::init_execution_context(&graph).unwrap();
+    println!("Created wasi-nn execution context.");
 
-        println!("Read input tensor, size in bytes: {}", tensor_data.len());
+    // Load SquezeNet 1000 labels used for classification
+    let labels = fs::read("fixture/labels/squeezenet1.1-7.txt").unwrap();
+    let class_labels: Vec<String> = labels.lines().map(|line| line.unwrap()).collect();
+    println!("Read ONNX Labels, # of labels: {}", class_labels.len());
 
-        // Set inference input.
-        let dimensions = [1, 3, 224, 224];
-        context
-            .set_input(0, wasi_nn::TensorType::F32, &dimensions, &tensor_data)
-            .unwrap();
+    // Prepare WASI-NN tensor - Tensor data is always a bytes vector
+    let dimensions: TensorDimensions = vec![1, 3, 224, 224];
+    let data: TensorData = image_to_tensor(IMG_PATH.to_string(), 224, 224);
+    let tensor = Tensor::new(
+        &dimensions,
+        TensorType::Fp32,
+        &data,
+    );
+    exec_context.set_input("data", tensor).unwrap();
+    println!("Set input tensor");
 
-        // Execute the inference.
-        context.compute().unwrap();
-        println!("Executed graph inference");
+    // Execute the inferencing
+    exec_context.compute().unwrap();
+    println!("Executed graph inference");
 
-        // Retrieve the output.
-        let mut output_buffer = vec![0f32; 1001];
-        context.get_output(0, &mut output_buffer).unwrap();
+    // Get the inferencing result (bytes) and convert it to f32
+    println!("Getting inferencing output");
+    let output_data = exec_context.get_output("squeezenet0_flatten0_reshape0").unwrap().data();
 
-        let results = sort_results(&output_buffer);
-        println!("Found results, sorted top 5: {:?}", &results[..5]);
+    println!("Retrieved output data with length: {}", output_data.len());
+    let output_f32 = bytes_to_f32_vec(output_data);
 
-        for i in 0..5 {
-            println!(
-                "{}.) {}",
-                i + 1,
-                imagenet_classes::IMAGENET_CLASSES[results[i].0]
-            );
-        }
+    let output_shape = [1, 1000, 1, 1];
+    let output_tensor = Array::from_shape_vec(output_shape, output_f32).unwrap();
+
+    // Post-Processing requirement: compute softmax to inferencing output
+    let exp_output = output_tensor.mapv(|x| x.exp());
+    let sum_exp_output = exp_output.sum_axis(ndarray::Axis(1));
+    let softmax_output = exp_output / &sum_exp_output;
+
+    let mut sorted = softmax_output
+        .axis_iter(ndarray::Axis(1))
+        .enumerate()
+        .into_iter()
+        .map(|(i, v)| (i, v[Dim([0, 0, 0])]))
+        .collect::<Vec<(_, _)>>();
+    sorted.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+
+    for (index, probability) in sorted.iter().take(3) {
+        println!(
+            "Index: {} - Probability: {}",
+            class_labels[*index], probability
+        );
     }
 }
 
-// Sort the buffer of probabilities. The graph places the match probability for each class at the
-// index for that class (e.g. the probability of class 42 is placed at buffer[42]). Here we convert
-// to a wrapping InferenceResult and sort the results.
-fn sort_results(buffer: &[f32]) -> Vec<InferenceResult> {
-    let mut results: Vec<InferenceResult> = buffer
-        .iter()
-        .skip(1)
-        .enumerate()
-        .map(|(c, p)| InferenceResult(c, *p))
+pub fn bytes_to_f32_vec(data: Vec<u8>) -> Vec<f32> {
+    let chunks: Vec<&[u8]> = data.chunks(4).collect();
+    let v: Vec<f32> = chunks
+        .into_iter()
+        .map(|c| f32::from_le_bytes(c.try_into().unwrap()))
         .collect();
-    results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-    results
+
+    v.into_iter().collect()
 }
 
-// A wrapper for class ID and match probabilities.
-#[derive(Debug, PartialEq)]
-struct InferenceResult(usize, f32);
+// Take the image located at 'path', open it, resize it to height x width, and then converts
+// the pixel precision to FP32. The resulting BGR pixel vector is then returned.
+fn image_to_tensor(path: String, height: u32, width: u32) -> Vec<u8> {
+    let pixels = ImageReader::open(path).unwrap().decode().unwrap();
+    let dyn_img: DynamicImage = pixels.resize_exact(width, height, image::imageops::Triangle);
+    let bgr_img: RgbImage = dyn_img.to_rgb8();
+
+    // Get an array of the pixel values
+    let raw_u8_arr: &[u8] = &bgr_img.as_raw()[..];
+
+    // Create an array to hold the f32 value of those pixels
+    let bytes_required = raw_u8_arr.len() * 4;
+    let mut u8_f32_arr: Vec<u8> = vec![0; bytes_required];
+
+    // Normalizing values for the model
+    let mean = [0.485, 0.456, 0.406];
+    let std = [0.229, 0.224, 0.225];
+
+    // Read the number as a f32 and break it into u8 bytes
+    for i in 0..raw_u8_arr.len() {
+        let u8_f32: f32 = raw_u8_arr[i] as f32;
+        let rgb_iter = i % 3;
+
+        // Normalize the pixel
+        let norm_u8_f32: f32 = (u8_f32 / 255.0 - mean[rgb_iter]) / std[rgb_iter];
+
+        // Convert it to u8 bytes and write it with new shape
+        let u8_bytes = norm_u8_f32.to_ne_bytes();
+        for j in 0..4 {
+            u8_f32_arr[(raw_u8_arr.len() * 4 * rgb_iter / 3) + (i / 3) * 4 + j] = u8_bytes[j];
+        }
+    }
+
+    return u8_f32_arr;
+}
