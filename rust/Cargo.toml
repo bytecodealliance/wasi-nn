@@ -1,6 +1,6 @@
 [package]
 name = "wasi-nn"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["The Bytecode Alliance Developers"]
 description = "High-level Rust bindings for wasi-nn"
 license = "Apache-2.0"
@@ -18,6 +18,6 @@ exclude = ["examples", "scripts", "Cargo.lock"]
 targets = ["wasm32-wasi"]
 
 [dependencies]
-thiserror = "1"
+wit-bindgen = "0.22"
 
 [workspace]

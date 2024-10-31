@@ -63,16 +63,6 @@ jobs:
         working-directory: rust
         run: cargo publish --dry-run
 
-  check_bindings:
-    name: Regenerate Rust bindings
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Regenerate bindings
-        run: rust/scripts/regenerate-bindings-from-witx.sh
-      - name: Verify no changes
-        run: git diff --ignore-submodules --no-ext-diff --name-only --exit-code
-
   image2tensor:
     name: Build the image2tensor crate
     runs-on: ubuntu-latest
