@@ -16,7 +16,7 @@ primarily for the `wasm32-wasi` target.
 ### Build
 
 ```console
-$ cargo build --target wasm32-wasi
+$ cargo build --target wasm32-wasip1
 ```
 
 ### Examples

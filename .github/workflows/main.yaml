@@ -11,17 +11,17 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
       # Install OpenVINO
       - name: Install OpenVINO
-        uses: abrown/install-openvino-action@v8
+        uses: abrown/install-openvino-action@v9
 
       - name: Build Wasmtime + wasi-nn
         run: |
-          rustup target add wasm32-wasi
+          rustup target add wasm32-wasip1
           rustup target add wasm32-unknown-unknown
           git clone https://github.com/bytecodealliance/wasmtime --branch v16.0.0 --depth 1 --recursive
           cd wasmtime
@@ -52,13 +52,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: rustup target add wasm32-wasi
+      - run: rustup target add wasm32-wasip1
       - name: Run tests on native architecture
         working-directory: rust
         run: cargo test
-      - name: Build on wasm32-wasi
+      - name: Build on wasm32-wasip1
         working-directory: rust
-        run: cargo build --target=wasm32-wasi
+        run: cargo build --target=wasm32-wasip1
       - name: Check dry-run publish to crates.io
         working-directory: rust
         run: cargo publish --dry-run
@@ -68,10 +68,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: rustup target add wasm32-wasi
-      - name: Build for wasm32-wasi
+      - run: rustup target add wasm32-wasip1
+      - name: Build for wasm32-wasip1
         working-directory: image2tensor
-        run: cargo build --target=wasm32-wasi
+        run: cargo build --target=wasm32-wasip1
       - name: Check dry-run publish to crates.io
         working-directory: image2tensor
         run: cargo publish --dry-run

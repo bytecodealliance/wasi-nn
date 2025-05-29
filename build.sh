@@ -24,13 +24,13 @@ else
                 echo "The first argument: $1"
                 FIXTURE=https://github.com/intel/openvino-rs/raw/main/crates/openvino/tests/fixtures/mobilenet
                 pushd $WASI_NN_DIR/rust/
-                cargo build --release --target=wasm32-wasi
+                cargo build --release --target=wasm32-wasip1
                 mkdir -p $WASI_NN_DIR/rust/examples/classification-example/build
                 RUST_BUILD_DIR=$(realpath $WASI_NN_DIR/rust/examples/classification-example/build/)
                 cp -rn examples/images $RUST_BUILD_DIR
                 pushd examples/classification-example
-                cargo build --release --target=wasm32-wasi
-                cp target/wasm32-wasi/release/wasi-nn-example.wasm $RUST_BUILD_DIR
+                cargo build --release --target=wasm32-wasip1
+                cp target/wasm32-wasip1/release/wasi-nn-example.wasm $RUST_BUILD_DIR
                 pushd build
                 wget --no-clobber --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.bin
                 wget --no-clobber --directory-prefix=$RUST_BUILD_DIR $FIXTURE/mobilenet.xml

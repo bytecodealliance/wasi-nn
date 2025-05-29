@@ -28,4 +28,4 @@ image = { version = "0.24", default-features = false, features = [
 ] }
 
 [package.metadata.docs.rs]
-targets = ["wasm32-wasi"]
+targets = ["wasm32-wasip1"]
